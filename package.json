@@ -1,7 +1,8 @@
 {
 	"name": "kontakt-api-tools",
 	"displayName": "Kontakt API Tools",
-	"description": "Kontakt API definitions for the Lua Language Server",
+	"description": "Kontakt API Auto-Completions and Hover Documentation for the Lua Language Server",
+	"icon": "media/images/kontakt-logo.png",
 	"version": "0.0.1",
 	"publisher": "mvatter",
 	"repository": {
@@ -20,7 +21,6 @@
 	"keywords": [
 		"Kontakt",
 		"Native Instruments",
-		"API",
 		"Lua",
 		"ksp"
 	],
@@ -31,8 +31,8 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "kontakt-api-tools.helloWorld",
-				"title": "Hello World"
+				"command": "kontaktLua.initialize",
+				"title": "Initialize Kontakt API Tools"
 			}
 		]
 	},

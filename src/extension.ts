@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
+import { logger } from './main/utils/Logger';
 
 export async function activate(context: vscode.ExtensionContext) {
-	console.log('Activating Kontakt API Plugin...');
+	logger.info('Activating Kontakt API Plugin...');
 	// Check if Lua Language Server extension is installed/enabled
 	const luaExtId = "sumneko.lua";
 	const luaExt = vscode.extensions.getExtension(luaExtId);
@@ -14,12 +15,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 
 		if (choice === "Install") {
-			// This typically triggers an install prompt; user confirmation may still be required.
 			await vscode.commands.executeCommand("workbench.extensions.installExtension", luaExtId);
 		}
 		return;
 	} else {
-		console.log("Lua Language Server extension is installed.");
+		logger.info("Lua Language Server extension is installed.");
 	}
 
 	if (!luaExt.isActive) {
@@ -31,9 +31,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		async () => {
 			try {
 				await initializeKontaktLua(context);
-				console.log("Kontakt Lua API initialized");
 			} catch (err) {
-				console.error("Kontakt Lua init failed", err);
+				logger.error("Kontakt Lua init failed", err);
 				vscode.window.showErrorMessage(
 					"Kontakt Lua API initialization failed. See console."
 				);
@@ -68,7 +67,8 @@ async function initializeKontaktLua(ctx: vscode.ExtensionContext): Promise<void>
 
 	// Add the *library* folder to Lua.workspace.library
 	await ensureLuaWorkspaceLibrary(targetLib);
-	}
+	logger.info("Kontakt Lua API initialized");
+}
 
 
 /**

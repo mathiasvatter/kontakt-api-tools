@@ -1,0 +1,533 @@
+/* ------------------------------------------------------------------------- */
+/* Shared typography for rendered markdown content                           */
+/* ------------------------------------------------------------------------- */
+.markdown-body {
+	font-family: var(--vscode-font-family);
+	font-size: var(--vscode-font-size);
+	color: var(--vscode-foreground);
+	line-height: 1.5;
+}
+
+.markdown-body p {
+	margin: 0 0 1em;
+}
+
+.markdown-body code {
+	background-color: var(--vscode-textCodeBlock-background);
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+}
+
+.markdown-body pre {
+	background-color: var(--vscode-textBlockQuote-background);
+	padding: 1em;
+	border-radius: 4px;
+	overflow: auto;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+	margin: 0 0 1em 1.5em;
+}
+
+.markdown-body table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+	border: 1px solid var(--vscode-panel-border);
+	padding: 8px 10px;
+	text-align: left;
+}
+
+.markdown-body a {
+	color: var(--vscode-textLink-foreground);
+	text-decoration: none;
+}
+
+.markdown-body a:hover {
+	text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Base styles shared by CKSP webviews                                       */
+/* ------------------------------------------------------------------------- */
+.cksp-body {
+	margin: 0;
+	padding: 0;
+	font-family: var(--vscode-font-family);
+	color: var(--vscode-foreground);
+	background-color: var(--vscode-editor-background);
+	line-height: 1.6;
+}
+
+.cksp-body .action-buttons {
+	margin-top: auto;
+	padding-top: 20px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.cksp-body .codicon {
+	color: var(--vscode-icon-foreground);
+}
+
+.cksp-body a {
+	color: var(--vscode-textLink-foreground);
+	text-decoration: none;
+}
+
+.cksp-body a:hover {
+	text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Welcome panel                                                             */
+/* ------------------------------------------------------------------------- */
+.cksp-welcome main {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 28px 32px 40px 32px;
+	box-sizing: border-box;
+}
+
+.cksp-welcome header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18px;
+	margin-bottom: 24px;
+}
+
+.cksp-welcome .header-left {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+}
+
+.cksp-welcome .header-left .codicon {
+	font-size: 36px;
+	color: var(--vscode-focusBorder);
+}
+
+.cksp-welcome h1 {
+	margin: 0;
+	font-size: 1.9em;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cksp-welcome .subtitle {
+	margin: 6px 0 0;
+	color: var(--vscode-descriptionForeground);
+}
+
+.cksp-welcome .intro-text {
+	font-size: 1.1em;
+	color: var(--vscode-descriptionForeground);
+	margin-bottom: 30px;
+}
+
+.cksp-welcome .main-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+	gap: 20px;
+	margin-top: 20px;
+}
+
+.cksp-welcome .feature-card {
+	background-color: var(--vscode-sideBar-background);
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 6px;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+}
+
+.cksp-welcome .markdown-body h1,
+.cksp-welcome .markdown-body h2 {
+	font-size: 1.4em;
+	margin-top: 0;
+	margin-bottom: 15px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.cksp-welcome .markdown-body p {
+	color: var(--vscode-descriptionForeground);
+	margin-top: 0;
+}
+
+.cksp-welcome .markdown-body ul {
+	list-style-type: none;
+	padding-left: 0;
+}
+
+.cksp-welcome .markdown-body li {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.cksp-welcome .markdown-body li .codicon {
+	margin-top: 5px;
+	font-size: 1.1em;
+}
+
+.cksp-welcome code {
+	font-family: var(--vscode-editor-font-family);
+	background-color: var(--vscode-textCodeBlock-background);
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+}
+
+.cksp-welcome .footer {
+	margin-top: 40px;
+	text-align: center;
+	font-size: 0.9em;
+	color: var(--vscode-descriptionForeground);
+	border-top: 1px solid var(--vscode-panel-border);
+	padding-top: 20px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Changelog panel                                                           */
+/* ------------------------------------------------------------------------- */
+.cksp-changelog {
+	color-scheme: var(--vscode-color-scheme, dark);
+}
+
+.cksp-changelog main {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 28px 32px 40px 32px;
+	box-sizing: border-box;
+}
+
+.cksp-changelog header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18px;
+	margin-bottom: 24px;
+}
+
+.cksp-changelog .header-left {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+}
+
+.cksp-changelog .header-left .codicon {
+	font-size: 36px;
+	color: var(--vscode-focusBorder);
+}
+
+.cksp-changelog h1 {
+	margin: 0;
+	font-size: 1.9em;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cksp-changelog .subtitle {
+	margin: 6px 0 0;
+	color: var(--vscode-descriptionForeground);
+}
+
+.cksp-changelog .actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	align-self: center;
+	flex-wrap: wrap;
+}
+
+.cksp-changelog .actions .codicon {
+	font-size: 16px;
+	color: var(--vscode-icon-foreground);
+}
+
+.cksp-changelog .markdown-container {
+	padding: 20px 24px;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 8px;
+	background-color: var(--vscode-sideBar-background);
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.cksp-changelog .markdown-body h1 {
+	font-size: 1.6em;
+	margin-top: 0;
+}
+
+.cksp-changelog .markdown-body a {
+	color: var(--vscode-textLink-foreground);
+}
+
+.cksp-changelog .empty-state {
+	padding: 40px;
+	text-align: center;
+	color: var(--vscode-descriptionForeground);
+}
+
+/* ------------------------------------------------------------------------- */
+/* GitHub release panel                                                      */
+/* ------------------------------------------------------------------------- */
+.cksp-releases main {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 28px 32px 40px 32px;
+	box-sizing: border-box;
+}
+
+.cksp-releases header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18px;
+	margin-bottom: 24px;
+}
+
+.cksp-releases .header-left {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+}
+
+.cksp-releases .header-left .codicon {
+	font-size: 36px;
+	color: var(--vscode-focusBorder);
+}
+
+.cksp-releases h1 {
+	margin: 0;
+	font-size: 1.9em;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.cksp-releases .subtitle {
+	margin: 6px 0 0;
+	color: var(--vscode-descriptionForeground);
+}
+
+.cksp-releases .actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	align-self: center;
+	flex-wrap: wrap;
+}
+
+.cksp-releases .actions .codicon {
+	font-size: 16px;
+	color: var(--vscode-icon-foreground);
+}
+
+.cksp-releases .intro-text {
+	font-size: var(--vscode-font-size);
+	color: var(--vscode-foreground);
+	margin-top: 0;
+	margin-bottom: 20px;
+	line-height: 1.5;
+	padding: 10px;
+	background-color: var(--vscode-textBlockQuote-background);
+	border-left: 3px solid var(--vscode-textBlockQuote-border);
+	border-radius: 4px;
+}
+
+.cksp-releases .intro-text p {
+	margin-top: 0;
+	margin-bottom: 10px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.cksp-releases .intro-text ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.cksp-releases .intro-text li {
+	margin-bottom: 6px;
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	color: var(--vscode-foreground);
+}
+
+.cksp-releases .intro-text li > .codicon {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.cksp-releases .intro-text code {
+	font-family: var(--vscode-editor-font-family);
+	background-color: var(--vscode-textCodeBlock-background);
+	padding: 0.1em 0.3em;
+	border-radius: 3px;
+	font-size: 0.95em;
+}
+
+.cksp-releases .intro-text span.codicon {
+	vertical-align: middle;
+	font-size: inherit;
+}
+
+.cksp-releases .intro-text span.codicon-trash {
+	color: var(--vscode-errorForeground, #f44747);
+}
+
+.cksp-releases .intro-text strong {
+	color: var(--vscode-list-highlightForeground);
+}
+
+.cksp-releases details summary {
+	list-style: none;
+	-webkit-appearance: none;
+	appearance: none;
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+	padding: 0.3em 0;
+}
+
+.cksp-releases details summary::-webkit-details-marker {
+	display: none;
+}
+
+.cksp-releases details summary .codicon {
+	margin-right: 6px;
+	transition: transform 0.2s ease;
+}
+
+.cksp-releases details[open] summary .codicon {
+	transform: rotate(90deg);
+}
+
+.cksp-releases details .release-body {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.3s ease;
+}
+
+.cksp-releases details[open] .release-body {
+	max-height: 2000px;
+}
+
+.cksp-releases .release-container {
+	border: 1px solid var(--vscode-panel-border);
+	padding: 15px;
+	margin-bottom: 15px;
+	border-radius: 4px;
+	background-color: var(--vscode-sideBar-background);
+}
+
+.cksp-releases .release-title-container {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 5px;
+}
+
+.cksp-releases .release-title-container h3 {
+	margin: 0;
+	flex-grow: 1;
+}
+
+.cksp-releases .prerelease-badge {
+	border-color: var(--vscode-statusBarItem-warningBackground, #b8860b);
+	color: var(--vscode-statusBarItem-warningForeground, #ffffff);
+	flex-shrink: 0;
+}
+
+.cksp-releases .asset-list {
+	margin-top: 10px;
+}
+
+.cksp-releases .asset-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+	padding: 5px;
+	background-color: var(--vscode-list-hoverBackground);
+	border-radius: 3px;
+}
+
+.cksp-releases .asset-info {
+	margin-right: 10px;
+	padding-left: 5px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cksp-releases .publish-date {
+	font-size: 0.9em;
+	color: var(--vscode-descriptionForeground);
+	margin-bottom: 10px;
+}
+
+.cksp-releases .loading-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 20px;
+}
+
+.cksp-releases .error-message {
+	color: var(--vscode-errorForeground);
+	font-weight: bold;
+	margin-top: 15px;
+	padding: 10px;
+	background-color: var(--vscode-inputValidation-errorBackground);
+	border: 1px solid var(--vscode-inputValidation-errorBorder);
+	border-radius: 4px;
+}
+
+.cksp-releases .action-buttons {
+	display: flex;
+	gap: 5px;
+	vertical-align: middle;
+}
+
+.cksp-releases .delete-button .codicon-trash {
+	color: var(--vscode-errorForeground, #f44747);
+}
+
+.cksp-releases .delete-button:hover {
+	background-color: var(--vscode-inputValidation-errorBackground);
+}
+
+.cksp-releases vscode-button.error-state {
+	--button-secondary-background: var(--vscode-inputValidation-errorBackground);
+	--button-secondary-border: var(--vscode-inputValidation-errorBorder);
+}
+
+.cksp-releases vscode-button span.codicon {
+	margin-right: 5px;
+	vertical-align: middle;
+}
+
+.cksp-releases .new-release-highlight {
+	border: 2px solid var(--vscode-focusBorder, #007acc);
+	padding: 13px;
+}
+
+.cksp-releases .release-container.is-prerelease {
+	display: none;
+}
+
+.cksp-releases #release-list.show-prereleases .release-container.is-prerelease {
+	display: block;
+}
+
+.cksp-releases #release-list {
+	margin-top: 15px;
+}

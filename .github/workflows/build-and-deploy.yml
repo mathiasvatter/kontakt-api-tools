@@ -1,0 +1,138 @@
+name: Build & Release Kontakt API Tools
+
+on:
+  push:
+    branches: [ main ]
+    # branches-ignore: [ main, development]
+
+jobs:
+  build-and-release:
+    # environment: kontakt-api-tools
+    runs-on: macos-latest
+    permissions: 
+      contents: write
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # important for tags
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}  # read in the same org context
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Homebrew deps (jq, gh)
+        run: |
+          brew install jq gh || true
+
+      - name: Install vsce CLI
+        run: npm i -g @vscode/vsce
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # ---- Tag und Existenz nur einmal bestimmen ----
+      - name: Compute tag and check existence
+        id: tagcheck
+        run: |
+          set -euo pipefail
+          VERSION=$(jq -r '.version' package.json)
+          TAG="v${VERSION}"
+
+          echo "tag=$TAG"      >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse -q --verify "${TAG}^{commit}" >/dev/null 2>&1; then
+            echo "exists=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Show detected tag
+        run: |
+          echo "Tag:     ${{ steps.tagcheck.outputs.tag }}"
+          echo "Version: ${{ steps.tagcheck.outputs.version }}"
+          echo "Exists:  ${{ steps.tagcheck.outputs.exists }}"
+
+      - name: Make scripts executable
+        run: |
+          chmod +x build.sh || true
+          chmod +x set_release.sh || true
+          chmod +x scripts/write_changelog.sh || true
+
+      - name: Build & Package extension
+        env:
+          CI: "true"
+        run: |
+          ./build.sh
+
+      - name: Verify VSIX presence
+        id: vsix
+        run: |
+          echo "VSIX files in _Releases/:"
+          ls -lah _Releases || true
+          NAME=$(jq -r '.name' "package.json")
+          VSIX="_Releases/${NAME}-${{ steps.tagcheck.outputs.version }}.vsix"
+          if [ ! -f "$VSIX" ]; then
+            echo "Missing file: $VSIX"
+            echo "Found:"
+            ls -lah _Releases || true
+            exit 1
+          fi
+          echo "vsix_path=$VSIX" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git author (for tagging)
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Push to main
+        if: ${{ steps.tagcheck.outputs.exists == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git add CHANGELOG.md
+          # Nur committen, wenn wirklich staged Änderungen existieren
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            DID_COMMIT=0
+          else
+            git commit -m "Publish Release: ${{ steps.tagcheck.outputs.tag }}"
+            DID_COMMIT=1
+          fi
+
+          # Remote des Hauptrepos auf HTTPS + Token setzen (weil persist-credentials: false)
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # Aktuellen Branch bestimmen (robust für main/master/feature-branches)
+          BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+          echo "Pushing pointer commit to ${BRANCH}"
+
+          # Rebase gegen Remote (vermeidet Non-fast-forward bei parallelen Runs)
+          git fetch origin "${BRANCH}"
+          git pull --rebase origin "${BRANCH}" || true
+
+          # Push ist immer safe: wenn nichts neu ist, ist Exit-Code trotzdem 0
+          if [ "$DID_COMMIT" -eq 1 ]; then
+            echo "Pushing new commit…"
+          else
+            echo "No new commit, but ensuring remote is up to date…"
+          fi
+          git push origin "HEAD:${BRANCH}"
+
+
+      - name: Run set_release.sh (create GitHub Release)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # gh CLI erwartet GH_TOKEN
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./set_release.sh

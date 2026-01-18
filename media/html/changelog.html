@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="
+		default-src 'none';
+		style-src 'unsafe-inline' {{CSP_SOURCE}};
+		script-src 'nonce-{{NONCE}}';
+		font-src {{CSP_SOURCE}};
+		img-src {{CSP_SOURCE}} https:;
+	">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+	<script type="module" nonce="{{NONCE}}" src="{{TOOLKIT_URI}}"></script>
+	<script nonce="{{NONCE}}" src="{{MARKDOWNIT_URI}}"></script>
+	<script nonce="{{NONCE}}" src="{{DOMPURIFY_URI}}"></script>
+	<link href="{{CODICON_CSS_URI}}" rel="stylesheet" />
+	<link href="{{MARKDOWN_CSS_URI}}" rel="stylesheet" type="text/css" />
+	<title>CKSP Tools – What's New</title>
+</head>
+<body class="cksp-body cksp-changelog">
+	<main>
+		<header>
+			<div class="header-left">
+				<span class="codicon codicon-history"></span>
+				<div>
+					<h1 id="title">CKSP Tools – What's New</h1>
+					<p id="subtitle" class="subtitle"></p>
+				</div>
+			</div>
+			<div class="actions">
+				<vscode-button id="open-welcome" appearance="secondary">
+					<span class="codicon codicon-rocket" slot="start"></span>
+					Welcome Page
+				</vscode-button>
+				<vscode-button id="open-releases" appearance="secondary">
+					<span class="codicon codicon-github-inverted" slot="start"></span>
+					GitHub releases
+				</vscode-button>
+			</div>
+		</header>
+
+		<section class="markdown-container">
+			<div id="markdown-content" class="markdown-body">
+				<div class="empty-state">Loading changelog …</div>
+			</div>
+		</section>
+	</main>
+
+	<script nonce="{{NONCE}}">
+		const vscode = acquireVsCodeApi();
+		const md = window.markdownit({ html: true, linkify: true, typographer: true });
+
+		const renderMarkdown = (markdown) => {
+			const target = document.getElementById('markdown-content');
+			if (!markdown || !markdown.trim()) {
+				target.innerHTML = '<div class="empty-state">Keine Einträge gefunden.</div>';
+				return;
+			}
+
+			try {
+				const rendered = md.render(markdown);
+				const safe = window.DOMPurify.sanitize(rendered, { USE_PROFILES: { html: true } });
+				target.innerHTML = safe;
+			} catch (error) {
+				console.error('Failed to render markdown', error);
+				target.innerHTML = '<div class="empty-state">Unable to render changelog.</div>';
+			}
+		};
+
+		window.addEventListener('message', event => {
+			const message = event.data;
+			if (!message) {
+				return;
+			}
+
+			switch (message.command) {
+				case 'setContent':
+					renderMarkdown(message.markdown ?? '');
+					if (message.version) {
+						document.getElementById('subtitle').textContent = `Version ${message.version}`;
+					}
+					if (message.title) {
+						document.getElementById('title').textContent = message.title;
+					}
+					break;
+			}
+		});
+
+		document.getElementById('open-welcome').addEventListener('click', () => {
+			vscode.postMessage({ command: 'openWelcomePage' });
+		});
+
+		document.getElementById('open-releases').addEventListener('click', () => {
+			vscode.postMessage({ command: 'openReleases' });
+		});
+
+		vscode.postMessage({ command: 'ready' });
+	</script>
+</body>
+</html>
