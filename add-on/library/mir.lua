@@ -48,3 +48,21 @@ function MIR.detect_drum_type(file) end
 ---@param file string Absolute path of the audio file
 ---@return string sample_type One of nil, "bass", "bowed_string", "brass", "flute", "guitar", "keyboard", "mallet", "organ", "plucked_string", "reed", "synth", "vocal"
 function MIR.detect_instrument_type(file) end
+
+--- Analyzes and suggests loop points for samples.
+---
+--- This function examines a sample file and calculates optimal loop start and end points
+--- based on the provided parameters. The returned values can be used to set loop points
+--- for the respective zone.
+---
+--- @param file string The file path to the sample to analyze
+--- @param min_start number? (Optional) Minimum loop start point in samples
+--- @param max_start number? (Optional) Maximum loop start point in samples
+--- @param min_end number? (Optional) Minimum loop end point in samples
+--- @param min_length number? (Optional) Minimum loop length in samples
+---
+--- @return number loop_start The suggested loop start point
+--- @return number loop_end The suggested loop end point
+---
+--- @note If only the file path is supplied, all other arguments are calculated automatically by the algorithm
+function MIR.find_loop(file, min_start, max_start, min_end, min_length) end

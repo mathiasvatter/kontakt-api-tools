@@ -12,17 +12,21 @@ Filesystem = {}
 -------------------------------------------------------------------------------
 
 -- Example: 
+-- ```lua
 -- for _, p in Filesystem.directory(path) do
 --     print(p)
 -- end
+-- ```
 ---@param path string -- The path of a directory you want to iterate.
 ---@return fun(): string -- Returns an iterator over file/directory paths in `path`.
 function Filesystem.directory(path) end
 
 -- Example:
+-- ```lua
 -- for _, p in Filesystem.recursive_directory(path) do
 --     print(p)
 -- end
+-- ```
 ---@param path string -- The root directory to recursively iterate.
 ---@return fun(): string -- Returns an iterator over file paths in directory and sub-directories.
 function Filesystem.recursive_directory(path) end
@@ -31,9 +35,61 @@ function Filesystem.recursive_directory(path) end
 -- Path Functions
 -------------------------------------------------------------------------------
 
+-- operational queries on the underlying filesystem (ported from creator tools documentation)
+
 ---@param path string -- A path string to query.
 ---@return boolean -- Returns true if `path` is empty.
 function Filesystem.empty(path) end
+
+---@param path string -- A path string to query.
+---@return boolean -- Returns true if `path` is a directory and is empty.
+function Filesystem.is_empty(path) end
+
+---@param path string -- A path string to query.
+---@return boolean -- Returns true if `path` exists in the filesystem.
+function Filesystem.exists(path) end
+
+---@param path1 string -- A path string to compare.
+---@param path2 string -- A path string to compare.
+---@return boolean -- Returns true if `path1` and `path2` refer to the same file or directory.
+function Filesystem.equivalent(path1, path2) end
+
+---@param path string -- A path string to query.
+---@return number -- Returns the size of the file at `path` in bytes.
+function Filesystem.file_size(path) end
+
+---@return string -- Returns the current working directory as an absolute path.
+function Filesystem.current_path() end
+
+--- Checks if the given path points to a regular file.
+--- A regular file is a file that is not a directory, symbolic link, or special file.
+---@param path string -- A path string to query.
+---@return boolean -- Returns true if the path is a regular file, false otherwise.
+function Filesystem.is_regular_file(path) end
+
+---@param path string -- A path string to query.
+---@return boolean -- Returns true if `path` is a directory.
+function Filesystem.is_directory(path) end
+
+---@param path string -- A path string to query.
+---@return boolean -- Returns true if `path` is a symbolic link.
+function Filesystem.is_symlink(path) end
+
+---@param path string -- A path string to query.
+---@return boolean -- Returns true if `path` is a special file (e.g., device file, socket, etc.).
+function Filesystem.is_other(path) end
+
+---@param path string -- A path string to query.
+---@return number -- Returns the last write time of the file or directory at `path` as a timestamp.
+function Filesystem.last_write_time(path) end
+
+---@param path string -- A path string to query.
+---@return string -- Returns the target path of the symbolic link at `path`.
+function Filesystem.read_symlink(path) end
+
+---@param path string -- A path string to query.
+---@return number -- Returns the number of hard links to the file at `path`.
+function Filesystem.hard_link_count(path) end
 
 ---@param path string -- A path string to query.
 ---@return string -- Returns the extension of `path`.
