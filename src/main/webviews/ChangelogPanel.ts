@@ -3,7 +3,7 @@ import { getWebviewHtmlFromString } from '../utils/webviewUtils';
 import changelogHtml from '../../../media/html/changelog.html';
 
 export class ChangelogPanel {
-	public static readonly title = 'Kontakt API Tools – Changelog';
+	public static readonly extensionTitle = 'Kontakt API Tools';
 	public static currentPanel: ChangelogPanel | undefined;
 	public static readonly viewType = 'kontaktApiChangelog';
 
@@ -22,7 +22,7 @@ export class ChangelogPanel {
 
 		const panel = vscode.window.createWebviewPanel(
 			ChangelogPanel.viewType,
-			ChangelogPanel.title,
+			ChangelogPanel.extensionTitle + ' - Changelog',
 			column,
 			{
 				enableScripts: true,
@@ -99,7 +99,7 @@ export class ChangelogPanel {
 				command: 'setContent',
 				markdown,
 				version,
-				title: ChangelogPanel.title,
+				title: ChangelogPanel.extensionTitle + ' - Whats New',
 			});
 		} catch (error) {
 			const version = String(this._context.extension.packageJSON.version ?? '');
@@ -108,7 +108,7 @@ export class ChangelogPanel {
 				command: 'setContent',
 				markdown: '## Unable to load changelog\nAn error occurred while reading `CHANGELOG.md`.',
 				version,
-				title: ChangelogPanel.title,
+				title: ChangelogPanel.extensionTitle + ' - Changelog',
 			});
 			vscode.window.showErrorMessage('Unable to load CHANGELOG.md. See developer console for details.');
 		}
