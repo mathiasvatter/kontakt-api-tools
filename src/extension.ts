@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { logger } from './main/utils/Logger';
+import { ChangelogPanel } from './main/webviews/ChangelogPanel';
+
 
 export async function activate(context: vscode.ExtensionContext) {
 	logger.info('Activating Kontakt API Plugin...');
@@ -26,9 +28,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		await luaExt.activate();
 	}
 
-	const disposable = vscode.commands.registerCommand(
-		"kontaktLua.initialize",
-		async () => {
+	context.subscriptions.push(
+		vscode.commands.registerCommand('kontaktLua.showChangelog', () => {
+			ChangelogPanel.createOrShow(context);
+		})
+	);
+	context.subscriptions.push(
+		vscode.commands.registerCommand("kontaktLua.initialize", async () => {
 			try {
 				await initializeKontaktLua(context);
 			} catch (err) {
@@ -37,13 +43,26 @@ export async function activate(context: vscode.ExtensionContext) {
 					"Kontakt Lua API initialization failed. See console."
 				);
 			}
-		}
+		})
 	);
 
-	context.subscriptions.push(disposable);
-
 	await initializeKontaktLua(context);
+	showChangelogIfUpdated(context);
+	logger.info('Kontakt API Plugin activated.');
 
+}
+
+function showChangelogIfUpdated(context: vscode.ExtensionContext) {
+	const extensionVersion = context.extension.packageJSON.version;
+	const lastShownKey = 'kontaktLua.changelog.lastShownVersion';
+	const lastShownVersion = context.globalState.get<string | undefined>(lastShownKey);
+
+	if (lastShownVersion !== extensionVersion) {
+		setTimeout(() => {
+			vscode.commands.executeCommand('kontaktLua.showChangelog');
+			void context.globalState.update(lastShownKey, extensionVersion);
+		}, 500);
+	}
 }
 
 

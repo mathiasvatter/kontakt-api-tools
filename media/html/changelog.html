@@ -16,27 +16,17 @@
 	<script nonce="{{NONCE}}" src="{{DOMPURIFY_URI}}"></script>
 	<link href="{{CODICON_CSS_URI}}" rel="stylesheet" />
 	<link href="{{MARKDOWN_CSS_URI}}" rel="stylesheet" type="text/css" />
-	<title>CKSP Tools – What's New</title>
+	<title>Kontakt API Tools – What's New</title>
 </head>
-<body class="cksp-body cksp-changelog">
+<body class="kontakt-api-tools-body kontakt-api-tools-changelog">
 	<main>
 		<header>
 			<div class="header-left">
 				<span class="codicon codicon-history"></span>
 				<div>
-					<h1 id="title">CKSP Tools – What's New</h1>
+					<h1 id="title">Kontakt API Tools – What's New</h1>
 					<p id="subtitle" class="subtitle"></p>
 				</div>
-			</div>
-			<div class="actions">
-				<vscode-button id="open-welcome" appearance="secondary">
-					<span class="codicon codicon-rocket" slot="start"></span>
-					Welcome Page
-				</vscode-button>
-				<vscode-button id="open-releases" appearance="secondary">
-					<span class="codicon codicon-github-inverted" slot="start"></span>
-					GitHub releases
-				</vscode-button>
 			</div>
 		</header>
 
@@ -54,7 +44,7 @@
 		const renderMarkdown = (markdown) => {
 			const target = document.getElementById('markdown-content');
 			if (!markdown || !markdown.trim()) {
-				target.innerHTML = '<div class="empty-state">Keine Einträge gefunden.</div>';
+				target.innerHTML = '<div class="empty-state">No entries found.</div>';
 				return;
 			}
 
@@ -85,14 +75,6 @@
 					}
 					break;
 			}
-		});
-
-		document.getElementById('open-welcome').addEventListener('click', () => {
-			vscode.postMessage({ command: 'openWelcomePage' });
-		});
-
-		document.getElementById('open-releases').addEventListener('click', () => {
-			vscode.postMessage({ command: 'openReleases' });
 		});
 
 		vscode.postMessage({ command: 'ready' });

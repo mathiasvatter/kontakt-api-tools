@@ -33,6 +33,10 @@
 			{
 				"command": "kontaktLua.initialize",
 				"title": "Initialize Kontakt API Tools"
+			},
+			{
+				"command": "kontaktLua.showChangelog",
+				"title": "Kontakt API Tools: What's New"
 			}
 		]
 	},
