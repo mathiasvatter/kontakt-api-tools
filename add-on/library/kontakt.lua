@@ -20,8 +20,8 @@
 ---@field voice_stealing_modes table -- Voice stealing mode options (“any”, “highest”, “lowest”, “newest”, “oldest”).
 ---@field max_num_sample_loops integer -- Maximum number of sample loops supported (as of Kontakt 7.5 this is 8).
 ---@field max_num_zones integer -- Maximum number of zones supported (as of Kontakt 7.5 this is 98304).
----@field sample_loop_modes string[] -- Valid loop mode strings. (See sample_loop_modes reference on the Zone page.)
----@field zone_grid_modes string[] -- Valid zone grid modes. (See zone_grid_modes reference on the Zone page.)
+---@field sample_loop_modes sample_loop_modes[] -- Valid loop mode strings. (See sample_loop_modes reference on the Zone page.)
+---@field zone_grid_modes zone_grid_modes[] -- Valid zone grid modes. (See zone_grid_modes reference on the Zone page.)
 ---@field bus_fx integer -- Points a preset loading function to the first instrument bus FX chain. Add 1–15 to reach other instrument bus FX chains.
 ---@field group_fx integer -- Points a preset loading function to the group FX chain.
 ---@field insert_fx integer -- Points a preset loading function to the insert FX chain.
@@ -53,6 +53,7 @@
 ---| "fixed" -- Fixed grid mode.
 ---| "none"  -- Grid off.
 
+---@type Kontakt
 Kontakt = {}
 
 -------------------------------------------------------------------------------
