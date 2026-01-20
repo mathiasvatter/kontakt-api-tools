@@ -278,12 +278,14 @@ function Kontakt.set_instrument_volume(instrument_idx, volume) end
 
 -- Modifiers
 
---- Adds new instrument.
----@param instrument_idx integer -- Index of the instrument.
+--- Adds new instrument at given or next available instrument index. Returns the index of the new instrument. Pass this index to functions taking `instrument_idx` as an argument.
+---@param instrument_idx? integer -- Index of the instrument.
+---@return integer -- Returns the instrument slot of the new instrument.
 function Kontakt.add_instrument(instrument_idx) end 
 
---- Adds instrument bank.
----@param bank_index integer -- Bank index where instrument will be added.
+--- Adds instrument bank at given or next available instrument slot. Returns the instrument slot of the new instrument bank.
+---@param bank_index? integer -- Bank index where instrument will be added.
+---@return integer -- Returns the instrument slot of the new instrument bank.
 function Kontakt.add_instrument_bank(bank_index) end 
 
 --- Removes instrument.
@@ -296,8 +298,9 @@ function Kontakt.remove_instrument_bank(bank_index) end
 
 -- File I/O (Instrument)
 
---- Loads instrument from disk.
+--- Loads an instrument to the specified slot index. If that slot is already occupied, next available slot is used. Returns the slot index of the new instrument. Note: contrary to most other functions, the slot index here can also refer to a slot within an instrument bank!
 ---@param path string -- Absolute path to instrument file.
+---@return integer -- Returns the instrument slot index of the loaded instrument.
 function Kontakt.load_instrument(path) end 
 
 --- Loads snapshot.
