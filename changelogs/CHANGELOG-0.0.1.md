@@ -1,12 +1,16 @@
-# Changelog (up to HEAD, first release)
+# Changelog
 
-- Add README.md; Add write_changelog script and other bash scripts to scripts/ dir
-- Add @type annotation to Kontakt table for LLS to recognize field definitions
-- Update launch config and changelog html
-- Add Changelog Wwebview component
-- Update extension description; Add logger to collect debug info in VS Code output tab and replace console.log; Add set_release script; Add first github-workflow draft for build and deploy; Add media folder; Add wip extension logo
-- Add bash scripts
-- Update missing Filesystem module definitions from CT docs; Update some number annotations to integer; Update missing Zone module function definitions; Add code to install LLS Add-on on extension start-up into vscode.globalStorage; Add build and install bash script
-- Init vs code extension folder structure
-- Add definition files for Add-on for Kontakt Module, Filesystem Module and MIR Module
-- Initial commit
+This is the initial release of the Kontakt Lua API VS Code extension.
+
+## [0.0.1] - 2026-01-20
+
+### Added
+- Initial release of the VS Code extension for **Kontakt Lua API**.
+- IntelliSense support through type definitions for `Kontakt`, `Filesystem`, and `MIR` modules. Collecting definitions, type infos and documentation into lua definition files, sourced from official API reference and Creator Tools documentation.
+- Functionality for checking and **automatic installation** of the Lua Language Server (LLS) plugin by `sumneko.lua` at extension startup.
+- Functionality for registering Kontakt Lua API definitions with LLS using VS Code's workspace library mechanism.
+- Basic README documentation outlining features, requirements, and usage.
+- Logger system integrated into the VS Code Output tab for easier debugging (replaces `console.log` usage).
+- **Changelog webview component** embedded in the extension for displaying release notes.
+
+> Note: The definition files might be incomplete in some areas or incorrectly annotated. Contributions and issue reports are welcome!
