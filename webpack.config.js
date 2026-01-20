@@ -30,6 +30,10 @@ const extensionConfig = {
   module: {
     rules: [
       {
+        test: /\.html$/i,
+        type: 'asset/source'
+      },
+      {
         test: /\.ts$/,
         exclude: /node_modules/,
         use: [

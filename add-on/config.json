@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "hint.enable": true,
+  "settings": {
+    "Lua.diagnostics.disable": [
+      "lowercase-global"
+    ]
+  }
+}

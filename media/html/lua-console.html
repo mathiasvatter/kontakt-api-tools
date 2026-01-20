@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontakt Logs</title>
+    <script type="module" src="{{TOOLKIT_URI}}"></script>
+    <link rel="stylesheet" href="{{CODICON_CSS_URI}}" />
+</head>
+<body>
+    <style>
+        body {
+            font-family: monospace;
+            white-space: pre-wrap;
+            /* background-color: var(--vscode-editor-background, #222);  */
+            padding: 10px;
+            font-size: 11px;
+        }
+
+        p {
+            margin: 0;   /* Remove margins to reduce line spacing */
+            padding: 2px 0; /* Add minimal padding if needed for readability */
+            line-height: 1.2; /* Adjust line height to a smaller value */
+        }
+
+        #log-container {
+            max-height: 100%;
+            overflow-y: auto;  /* Enable vertical scrolling */
+        }
+    </style>
+    <section id="log-container" class="component-container">
+        <!-- ${parsedHtml} -->
+    </section>
+    <script nonce="{{NONCE}}">
+        const vscode = acquireVsCodeApi();
+        const logContainer = document.getElementById('log-container');
+
+        // Function to append a new log to the container
+        function appendLog(html) {
+            const logLine = document.createElement('p');
+            logLine.className = 'log-line';
+            logLine.innerHTML = html; // This contains the HTML for the ANSI-colored log
+            logContainer.appendChild(logLine);
+            logContainer.scrollIntoView(false); // Scroll to the bottom of the log       
+            // Save the current logs into state for persistence
+            const logsHtml = logContainer.innerHTML;
+            vscode.setState({ logs: logsHtml });
+        }
+
+        // Function to append multiple logs
+        function appendLogs(logs) {
+            logs.forEach(log => {
+                appendLog(log);
+            });
+            const logsHtml = logContainer.innerHTML;
+            vscode.setState({ logs: logsHtml });
+        }
+
+        function restoreLogs() {
+            // Check if there's state stored and restore the logs if available
+            const state = vscode.getState();
+            if (state && state.logs) {
+                logContainer.innerHTML = state.logs;
+                logContainer.scrollIntoView(false); // Scroll to the bottom of the log       
+            }
+        }
+        window.onload = restoreLogs;
+
+
+        // Listen for messages from the extension to append logs
+        window.addEventListener('message', event => {
+            const message = event.data;
+
+            if (message.command === 'appendLog') {
+                appendLog(message.html);
+            } else if (message.command === 'appendSavedLogs') {
+                logContainer.innerHTML = ''; // Clear the log container
+                appendLogs(message.logs);
+                // restoreLogs();
+            } else if (message.command === 'clearLog') {
+                logContainer.innerHTML = ''; // Clear the log container
+                vscode.setState({ logs: '' }); // Clear the saved state
+            }
+        });
+
+
+    </script>
+</body>
+</html>
