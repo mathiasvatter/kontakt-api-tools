@@ -36,7 +36,7 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      # ---- Tag und Existenz nur einmal bestimmen ----
+      # ---- Compute tag and existence only once ----
       - name: Compute tag and check existence
         id: tagcheck
         run: |
@@ -86,6 +86,19 @@ jobs:
           fi
           echo "vsix_path=$VSIX" >> "$GITHUB_OUTPUT"
 
+      - name: Archive changelog for this version
+        if: ${{ steps.tagcheck.outputs.exists == 'false' }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.tagcheck.outputs.version }}"
+          mkdir -p changelogs
+
+          TARGET="changelogs/CHANGELOG-${VERSION}.md"
+          echo "Writing ${TARGET}"
+
+          cp CHANGELOG.md "${TARGET}"
+
       - name: Configure git author (for tagging)
         run: |
           git config user.name "GitHub Actions"
@@ -100,8 +113,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          git add CHANGELOG.md
-          # Nur committen, wenn wirklich staged Änderungen existieren
+          git add CHANGELOG.md changelogs/
+          # Only commit if there are actually staged changes
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             DID_COMMIT=0
@@ -110,18 +123,18 @@ jobs:
             DID_COMMIT=1
           fi
 
-          # Remote des Hauptrepos auf HTTPS + Token setzen (weil persist-credentials: false)
+          # Set main repo remote to HTTPS + token (because persist-credentials: false)
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          # Aktuellen Branch bestimmen (robust für main/master/feature-branches)
+          # Determine current branch (robust for main/master/feature branches)
           BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
           echo "Pushing pointer commit to ${BRANCH}"
 
-          # Rebase gegen Remote (vermeidet Non-fast-forward bei parallelen Runs)
+          # Rebase against remote (avoids non-fast-forward with parallel runs)
           git fetch origin "${BRANCH}"
           git pull --rebase origin "${BRANCH}" || true
 
-          # Push ist immer safe: wenn nichts neu ist, ist Exit-Code trotzdem 0
+          # Push is always safe: if nothing is new, exit code is still 0
           if [ "$DID_COMMIT" -eq 1 ]; then
             echo "Pushing new commit…"
           else
@@ -132,7 +145,7 @@ jobs:
 
       - name: Run set_release.sh (create GitHub Release)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # gh CLI erwartet GH_TOKEN
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./set_release.sh
