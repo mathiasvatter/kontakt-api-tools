@@ -9,6 +9,7 @@ This makes writing scripts for the Kontakt Lua API much easier and more producti
 Additionally, since this is basically an add-on for the Lua Language Server, it needs the [Lua Language Server extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) to be installed and enabled in VS Code. If you don’t have it yet, you will be prompted to install it when you install this extension.
 
 
+
 ## Why this extension?
 
 Native Instruments exposes a Lua API for Kontakt, but no official language-server-compatible definitions are available.
@@ -21,6 +22,12 @@ As a result, Lua scripts written for Kontakt lack:
 
 This extension fills that gap by providing definition files based on the official Kontakt API reference, additional testing, and legacy documentation (Creator Tools).
 
+![Autocomplete- and Signature-Help example](media/gifs/kontakt-api-autocomplete.gif)
+Auto completion and signature help in action. This helps you discover functions and their parameters quickly while you type.
+
+![Hover Documentation example](media/gifs/kontakt-api-hover-doc.gif)
+Hover documentation providing function descriptions and parameter info when hovering over API symbols.
+
 
 ## Features
 
@@ -30,6 +37,7 @@ This extension fills that gap by providing definition files based on the officia
 - Go-to-definition support
 - EmmyLua-compatible type annotations
 - Zero configuration required
+
 
 
 ## Requirements

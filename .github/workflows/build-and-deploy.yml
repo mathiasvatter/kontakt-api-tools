@@ -148,4 +148,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./set_release.sh
+          ./scripts/set_release.sh
