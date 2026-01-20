@@ -62,7 +62,7 @@ jobs:
       - name: Make scripts executable
         run: |
           chmod +x build.sh || true
-          chmod +x set_release.sh || true
+          chmod +x scripts/set_release.sh || true
           chmod +x scripts/write_changelog.sh || true
 
       - name: Build & Package extension
