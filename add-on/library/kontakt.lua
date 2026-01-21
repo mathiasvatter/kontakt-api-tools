@@ -53,7 +53,7 @@
 ---| "fixed" -- Fixed grid mode.
 ---| "none"  -- Grid off.
 
----@type Kontakt
+---@class Kontakt
 Kontakt = {}
 
 -------------------------------------------------------------------------------
