@@ -3,7 +3,7 @@
 	"displayName": "Kontakt API Tools",
 	"description": "Kontakt API Auto-Completions and Hover Documentation for the Lua Language Server",
 	"icon": "media/images/kontakt-logo.png",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"publisher": "mvatter",
 	"repository": {
 		"type": "git",

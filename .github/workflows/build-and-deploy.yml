@@ -1,8 +1,8 @@
 name: Build & Release Kontakt API Tools
 
-on: []
-  # push:
-    # branches: [ main ]
+on: 
+  push:
+    branches: [ main ]
     # branches-ignore: [ main, development]
 
 jobs:
