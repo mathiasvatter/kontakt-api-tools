@@ -10,14 +10,15 @@
 
 ---@class Kontakt
 ---@field max_num_multi_scripts integer Maximum number of multi script slots. As of Kontakt 7.5, this constant returns 5.
----@field cc64_modes table Table of CC64 (sustain pedal) modes (“midi_exclusive”, “pedal_and_cc”, “pedal_exclusive”).
----@field instrument_purge_modes table Available purge mode strings (“all_samples”, “reload_all_samples”, “reset_markers”, “update_sample_pool”).
+---@field cc64_modes cc64_modes[] Table of CC64 (sustain pedal) modes (“midi_exclusive”, “pedal_and_cc”, “pedal_exclusive”).
+---@field instrument_purge_modes instrument_purge_modes[] Available purge mode strings (“all_samples”, “reload_all_samples”, “reset_markers”, “update_sample_pool”).
 ---@field max_num_instrument_aux integer Maximum number of AUX sends per instrument (e.g., 4 as of Kontakt 7.5).
 ---@field max_num_instruments integer Maximum number of instruments in a multi (e.g., 64 as of Kontakt 7.5).
 ---@field max_num_scripts integer Maximum number of scripts per instrument (e.g., 5 as of Kontakt 7.5).
 ---@field max_num_voice_groups integer Maximum voice groups per instrument (e.g., 128 as of Kontakt 7.5).
----@field save_modes table Save modes (“monolith”, “patch”, “samples”).
----@field voice_stealing_modes table Voice stealing mode options (“any”, “highest”, “lowest”, “newest”, “oldest”).
+---@field save_modes save_modes[] Save modes (“monolith”, “patch”, “samples”).
+---@field voice_group_modes voice_group_modes[] Voice group mode options (“any”, “highest”, “lowest”, “newest”, “oldest”).
+---@field voice_stealing_modes voice_stealing_modes[] Voice stealing mode options (“any”, “highest”, “lowest”, “newest”, “oldest”).
 ---@field max_num_sample_loops integer Maximum number of sample loops supported (as of Kontakt 7.5 this is 8).
 ---@field max_num_zones integer Maximum number of zones supported (as of Kontakt 7.5 this is 98304).
 ---@field sample_loop_modes sample_loop_modes[] Valid loop mode strings. (See sample_loop_modes reference on the Zone page.)
@@ -42,6 +43,25 @@
 ---@field script_file string Filename of the currently running Lua script, including extension.
 ---@field script_path string Absolute path to the folder containing the currently running Lua script.
 ---@field version string Current version of the running instance of Kontakt.
+---@alias cc64_modes
+---| "midi_exclusive"  CC64 affects only MIDI notes.
+---| "pedal_and_cc"    CC64 affects both pedal and MIDI notes.
+---| "pedal_exclusive"  CC64 affects only pedal notes.
+---@alias instrument_purge_modes
+---| "all_samples"          Purges all samples.
+---| "reload_all_samples"   Reloads all samples.
+---| "reset_markers"        Resets sample markers.
+---| "update_sample_pool"   Updates the sample pool.
+---@alias save_modes
+---| "monolith"
+---| "patch"
+---| "samples"
+---@alias voice_stealing_modes
+---| "any"
+---| "highest"
+---| "lowest"
+---| "newest"
+---| "oldest"
 ---@alias sample_loop_modes
 ---| "off"           Looping disabled.
 ---| "until_end"     Loop until end.
@@ -52,6 +72,12 @@
 ---| "auto"  Grid mode auto.
 ---| "fixed" Fixed grid mode.
 ---| "none"  Grid off.
+---@alias voice_group_modes
+---| "any"
+---| "highest"
+---| "lowest"
+---| "newest"
+---| "oldest"
 
 ---@class Kontakt
 Kontakt = {}
@@ -120,9 +146,8 @@ function Kontakt.load_multi(filename) end
 
 -- Get Property
 
----@param instrument_idx integer -- Zero-based index of the instrument.
 ---@return integer? -- Next available instrument index (or nil if none).
-function Kontakt.get_free_instrument_index(instrument_idx) end
+function Kontakt.get_free_instrument_index() end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param aux_index integer -- Aux send index.
@@ -277,6 +302,20 @@ function Kontakt.set_instrument_tune(instrument_idx, tune) end
 ---@param volume number -- Sets volume in dB.
 function Kontakt.set_instrument_volume(instrument_idx, volume) end
 
+
+---@class VoiceGroupOptions
+---@field mode voice_group_modes|nil        @ Voice stealing mode (default: “oldest”).
+---@field name string|nil                  @ Voice group name (default: ’’).
+---@field voices integer|nil               @ Maximum voices for this voice group (default: 1).
+---@field fade_time integer|nil            @ Voice fade time in milliseconds (default: 10).
+---@field prefer_released boolean|nil      @ Prefer released voices (default: true).
+---@field exclusive_group integer|nil      @ Exclusive group (default: nil).
+
+--- Sets voice groups of the specified instrument as a table with a maximum of 128 entries, matching the total number of possible voice groups. Nil table entries will set voice group to default values.
+---@param instrument_idx integer -- Zero-based index of the instrument.
+---@param voice_groups VoiceGroupOptions -- Table of voice groups to set for the instrument.
+function Kontakt.set_voice_groups(instrument_idx, voice_groups) end
+
 -- Modifiers
 
 --- Adds new instrument at given or next available instrument index. Returns the index of the new instrument. Pass this index to functions taking `instrument_idx` as an argument.
@@ -289,33 +328,43 @@ function Kontakt.add_instrument(instrument_idx) end
 ---@return integer -- Returns the instrument slot of the new instrument bank.
 function Kontakt.add_instrument_bank(bank_index) end 
 
---- Removes instrument.
----@param instrument_idx integer -- Index of instrument to remove.
+--- Removes the instrument at the specified instrument index from the multi.
+---@param instrument_idx integer -- Zero-based index of instrument to remove.
 function Kontakt.remove_instrument(instrument_idx) end 
 
---- Removes instrument bank.
----@param bank_index integer -- Index of instrument bank to remove.
+--- Removes the instrument bank at the specified instrument slot from the multi.
+---@param bank_index integer -- Zero-based index of instrument bank to remove.
 function Kontakt.remove_instrument_bank(bank_index) end 
 
 -- File I/O (Instrument)
 
 --- Loads an instrument to the specified slot index. If that slot is already occupied, next available slot is used. Returns the slot index of the new instrument. Note: contrary to most other functions, the slot index here can also refer to a slot within an instrument bank!
 ---@param path string -- Absolute path to instrument file.
+---@param instrument_idx? integer -- Zero-based index of the instrument slot.
 ---@return integer -- Returns the instrument slot index of the loaded instrument.
-function Kontakt.load_instrument(path) end 
+function Kontakt.load_instrument(path, instrument_idx) end 
 
---- Loads snapshot.
+--- Loads the specified snapshot in the specified instrument index.
+---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param snapshot_name string -- Instrument snapshot name to load (persisted UI state).
-function Kontakt.load_snapshot(snapshot_name) end 
+function Kontakt.load_snapshot(instrument_idx, snapshot_name) end 
+
+---@class SaveInstrumentOptions
+---@field mode save_modes|nil           @ default: "patch"
+---@field absolute_paths boolean|nil     @ default: false
+---@field compress_samples boolean|nil   @ default: false
+---@field samples_sub_dir string|nil
 
 --- Saves instrument.
----@param path string -- Absolute path to save instrument file.
----@param mode string -- One of save_modes (e.g., “monolith”, “patch”, “samples”).
-function Kontakt.save_instrument(path, mode) end 
+---@param instrument_idx integer -- Zero-based index of the instrument.
+---@param filename string -- Absolute path to save instrument file.
+---@param options SaveInstrumentOptions|nil -- table with one or more of the following entries: `mode: save_modes (default: “patch”), absolute_paths: boolean (default: false), compress_samples: boolean (default: false), samples_sub_dir: string`, Individual entries of this table can be omitted. In that case the default value is used.
+function Kontakt.save_instrument(instrument_idx, filename, options) end 
 
---- Saves snapshot.
----@param path string -- Absolute path to save instrument snapshot.
-function Kontakt.save_snapshot(path) end 
+--- Saves the state of the instrument at the specified insturment index as a snapshot at the specified absolute path.
+---@param instrument_idx integer -- Zero-based index of the instrument.
+---@param filename string -- Absolute path to save instrument snapshot.
+function Kontakt.save_snapshot(instrument_idx, filename) end 
 
 -------------------------------------------------------------------------------
 -- Group
@@ -394,6 +443,7 @@ function Kontakt.set_group_tune(instrument_idx, group_idx, tune) end
 ---@param volume number -- Group amplifier volume in dB.
 function Kontakt.set_group_volume(instrument_idx, group_idx, volume) end
 
+--- Assign a voice group to a group. In order to reset the assignment pass nil.
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param group_idx integer -- Zero-based index of the group.
 ---@param voice_group integer|nil -- Assigns a voice group to the group; nil resets assignment.
