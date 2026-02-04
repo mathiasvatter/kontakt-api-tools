@@ -1,16 +1,14 @@
 # Changelog
 
-This is the initial release of the Kontakt Lua API VS Code extension.
+> Thanks for using the Kontakt Lua API VS Code extension! This small update contains updates to the API definition files, like updating function signatures, incomplete documentation, and adding missing functions. Enjoy!
 
-## [0.0.1] - 2026-01-20
+## [v0.0.2] - 2026-02-04
 
 ### Added
-- Initial release of the VS Code extension for **Kontakt Lua API**.
-- IntelliSense support through type definitions for `Kontakt`, `Filesystem`, and `MIR` modules. Collecting definitions, type infos and documentation into lua definition files, sourced from official API reference and Creator Tools documentation.
-- Functionality for checking and **automatic installation** of the Lua Language Server (LLS) plugin by `sumneko.lua` at extension startup.
-- Functionality for registering Kontakt Lua API definitions with LLS using VS Code's workspace library mechanism.
-- Basic README documentation outlining features, requirements, and usage.
-- Logger system integrated into the VS Code Output tab for easier debugging (replaces `console.log` usage).
-- **Changelog webview component** embedded in the extension for displaying release notes.
+- Added missing function `set_voice_groups` to the Kontakt API definitions.
+- Defined return types for `Kontakt.add_instrument`, `Kontakt.add_instrument_bank`, and `Kontakt.load_instrument` to improve IntelliSense accuracy.
 
-> Note: The definition files might be incomplete in some areas or incorrectly annotated. Contributions and issue reports are welcome!
+### Changed
+- Updated documentation for `load_snapshot`, `save_instrument`, and `save_snapshot` functions for clarity and completeness.
+- Replaced `@type` annotations with `@class` to fix an issue where method autocompletion wasn't working properly.
+- Improved `@param` documentation across several functions for better developer guidance.
