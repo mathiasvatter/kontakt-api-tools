@@ -34,5 +34,9 @@ export const logger = {
 
     show() {
         channel.show(true);
+    },
+
+    dispose() {
+        channel.dispose();
     }
 };

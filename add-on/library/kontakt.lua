@@ -564,14 +564,14 @@ function Kontakt.remove_group(instrument_idx, group_idx) end
 ---@param instrument_idx integer Instrument index.
 ---@param group_idx integer Zero-based group index.
 ---@param filename string Absolute destination path for the group file.
----@param options SaveOptions Save options; omitted fields use their documented defaults.
+---@param options? SaveOptions Save options; omitted fields use their documented defaults.
 function Kontakt.save_group(instrument_idx, group_idx, filename, options) end
 
 ---Loads a group file into an existing group.
 ---@param instrument_idx integer Instrument index.
 ---@param group_idx integer Zero-based destination group index.
 ---@param filename string Absolute path of the group file.
----@param options GroupLoadOptions Load behavior; omitted fields use their documented defaults.
+---@param options? GroupLoadOptions Load behavior; omitted fields use their documented defaults.
 function Kontakt.load_group(instrument_idx, group_idx, filename, options) end
 
 -------------------------------------------------------------------------------

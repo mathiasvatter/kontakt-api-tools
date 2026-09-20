@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 import { getWebviewHtmlFromString } from '../utils/webviewUtils';
 import changelogHtml from '../../../media/html/changelog.html';
 
@@ -26,7 +27,6 @@ export class ChangelogPanel {
 			column,
 			{
 				enableScripts: true,
-				retainContextWhenHidden: true,
 				localResourceRoots: [context.extensionUri],
 			}
 		);
@@ -78,7 +78,7 @@ export class ChangelogPanel {
 			const html = getWebviewHtmlFromString(webview, this._context, changelogHtml);
 			webview.html = html;
 		} catch (error) {
-			console.error('Failed to load changelog webview HTML:', error);
+			logger.error('Failed to load changelog webview HTML', error);
 			this._panel.webview.html = `<html><body>Unable to load changelog view.</body></html>`;
 		}
 	}
@@ -95,16 +95,16 @@ export class ChangelogPanel {
 			const markdown = Buffer.from(buffer).toString('utf8');
 			const version = String(this._context.extension.packageJSON.version ?? '');
 
-			webview.postMessage({
+			await webview.postMessage({
 				command: 'setContent',
 				markdown,
 				version,
-				title: ChangelogPanel.extensionTitle + ' - Whats New',
+				title: ChangelogPanel.extensionTitle + " - What's New",
 			});
 		} catch (error) {
 			const version = String(this._context.extension.packageJSON.version ?? '');
-			console.error('Failed to read changelog:', error);
-			webview.postMessage({
+			logger.error('Failed to read changelog', error);
+			await webview.postMessage({
 				command: 'setContent',
 				markdown: '## Unable to load changelog\nAn error occurred while reading `CHANGELOG.md`.',
 				version,
