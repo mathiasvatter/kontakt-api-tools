@@ -6,7 +6,7 @@ It is a **drop-in extension** that supplies **EmmyLua definition files** to the 
 
 This makes writing scripts for the Kontakt Lua API much easier and more productive without constantly having to refer to the (partly incomplete) external online documentation.
 
-Additionally, since this is basically an add-on for the Lua Language Server, it needs the [Lua Language Server extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) to be installed and enabled in VS Code. If you don’t have it yet, you will be prompted to install it when you install this extension.
+Additionally, since this is an add-on for the Lua Language Server, it needs the [Lua Language Server extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) to be installed and enabled in VS Code. It is declared as a required extension dependency, so VS Code installs it together with this extension.
 
 
 
@@ -45,14 +45,14 @@ Hover documentation providing function descriptions and parameter info when hove
 - Visual Studio Code
 - Lua Language Server (LuaLS / `sumneko.lua`)
 
-> ⚠️ This extension will install/enable the Lua Language Server extension if it is not already present.
+> ⚠️ LuaLS is installed as a required extension dependency. If you disabled it manually, enable it again to use the Kontakt definitions.
 
 
 ## How it works
 
 This extension ships a set of EmmyLua-compatible definition files describing the Kontakt Lua API.
 
-On activation, these definitions are automatically registered with the Lua Language Server using VS Code’s workspace library mechanism.
+When a Lua file is opened, these definitions are automatically registered with the Lua Language Server using VS Code’s workspace library mechanism.
 
 
 ## Usage
@@ -111,4 +111,3 @@ Contributions are welcome, especially:
 
 - Native Instruments Kontakt API Reference
 - Lua Language Server (EmmyLua)
-

@@ -3,7 +3,7 @@
 	"displayName": "Kontakt API Tools",
 	"description": "Kontakt API Auto-Completions and Hover Documentation for the Lua Language Server",
 	"icon": "media/images/kontakt-logo.png",
-	"version": "0.0.2",
+	"version": "0.1.0",
 	"publisher": "mvatter",
 	"repository": {
 		"type": "git",
@@ -14,9 +14,7 @@
 	},
 	"categories": [
 		"Programming Languages",
-		"Snippets",
-		"Linters",
-		"Extension Packs"
+		"Snippets"
 	],
 	"keywords": [
 		"Kontakt",
@@ -25,7 +23,7 @@
 		"ksp"
 	],
 	"activationEvents": [
-		"onStartupFinished"
+		"onLanguage:lua"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {

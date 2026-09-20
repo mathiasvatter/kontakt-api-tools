@@ -19,6 +19,11 @@
 ---@field save_modes save_modes[] Save modes (“monolith”, “patch”, “samples”).
 ---@field voice_group_modes voice_group_modes[] Voice group mode options (“any”, “highest”, “lowest”, “newest”, “oldest”).
 ---@field voice_stealing_modes voice_stealing_modes[] Voice stealing mode options (“any”, “highest”, “lowest”, “newest”, “oldest”).
+---@field group_playback_modes group_playback_modes[] Available Source module playback modes.
+---@field group_start_conditions group_start_conditions[] Available group start condition types.
+---@field group_start_operators group_start_operators[] Operators used to combine group start conditions.
+---@field max_num_group_start_criteria integer Maximum number of start conditions per group (4 as of Kontakt 7.5).
+---@field max_num_groups integer Maximum number of groups per instrument (4096 as of Kontakt 7.5).
 ---@field max_num_sample_loops integer Maximum number of sample loops supported (as of Kontakt 7.5 this is 8).
 ---@field max_num_zones integer Maximum number of zones supported (as of Kontakt 7.5 this is 98304).
 ---@field sample_loop_modes sample_loop_modes[] Valid loop mode strings. (See sample_loop_modes reference on the Zone page.)
@@ -26,7 +31,7 @@
 ---@field bus_fx integer Points a preset loading function to the first instrument bus FX chain. Add 1–15 to reach other instrument bus FX chains.
 ---@field group_fx integer Points a preset loading function to the group FX chain.
 ---@field insert_fx integer Points a preset loading function to the insert FX chain.
----@field main_fx integer Points a preset loading function to the main FX chain. Does not apply to `load_fx_chain_preset()`.
+---@field main_fx integer Points a preset loading function to the main FX chain.
 ---@field output_fx integer Points a preset loading function to the output FX chain. Does not apply to `load_fx_chain_preset()`.
 ---@field send_fx integer Points a preset loading function to the send FX chain.
 ---@field desktop_path string Returns the absolute path to the operating system’s Desktop folder.
@@ -53,15 +58,36 @@
 ---| "reset_markers"        Resets sample markers.
 ---| "update_sample_pool"   Updates the sample pool.
 ---@alias save_modes
----| "monolith"
----| "patch"
----| "samples"
+---| "monolith" Saves a monolith containing the patch and its samples.
+---| "patch"    Saves the patch using its current sample references (default).
+---| "samples"  Saves the patch and collects its samples separately.
 ---@alias voice_stealing_modes
----| "any"
----| "highest"
----| "lowest"
----| "newest"
----| "oldest"
+---| "any"     Any voice may be stolen.
+---| "highest" Prefer the highest voice.
+---| "lowest"  Prefer the lowest voice.
+---| "newest"  Prefer the newest voice.
+---| "oldest"  Prefer the oldest voice.
+---@alias group_playback_modes
+---| "beat_machine"
+---| "dfd"
+---| "mpc60_machine"
+---| "s1200_machine"
+---| "sampler"
+---| "time_machine_1"
+---| "time_machine_2"
+---| "time_machine_pro"
+---| "tone_machine"
+---| "wavetable"
+---@alias group_start_conditions
+---| "controller"
+---| "key"
+---| "random"
+---| "round_robin"
+---| "slice_trigger"
+---@alias group_start_operators
+---| "and"     The following condition must also match.
+---| "and_not" The following condition must not match.
+---| "or"      Either condition may match.
 ---@alias sample_loop_modes
 ---| "off"           Looping disabled.
 ---| "until_end"     Loop until end.
@@ -73,11 +99,17 @@
 ---| "fixed" Fixed grid mode.
 ---| "none"  Grid off.
 ---@alias voice_group_modes
----| "any"
----| "highest"
----| "lowest"
----| "newest"
----| "oldest"
+---| "any"     Any voice is eligible.
+---| "highest" Prefer the highest voice.
+---| "lowest"  Prefer the lowest voice.
+---| "newest"  Prefer the newest voice.
+---| "oldest"  Prefer the oldest voice.
+
+---@class SaveOptions
+---@field mode save_modes|nil Save strategy (default: `"patch"`).
+---@field absolute_paths boolean|nil Store absolute rather than relative sample paths (default: `false`).
+---@field compress_samples boolean|nil Convert collected samples to losslessly compressed NCW files (default: `false`).
+---@field samples_sub_dir string|nil Subdirectory used when samples are collected.
 
 ---@class Kontakt
 Kontakt = {}
@@ -85,6 +117,11 @@ Kontakt = {}
 -------------------------------------------------------------------------------
 -- Multi
 -------------------------------------------------------------------------------
+--- A multi contains 64 instrument slots. Instrument indices reserve 128 values
+--- per slot so that they can also address instruments inside a bank. Prefer
+--- indices returned by `Kontakt.get_instrument_indices()` over assuming that
+--- loaded instruments are numbered consecutively.
+
 -- Get Property
 
 ---@return string Returns the name of the multi.
@@ -98,7 +135,7 @@ function Kontakt.get_multi_script_name(multi_script_idx) end
 ---@return string Returns the full source of the multi script in the specified slot.
 function Kontakt.get_multi_script_source(multi_script_idx) end
 
----@return number Returns the number of instruments loaded in the multi.
+---@return integer count Number of loaded instruments; this is a count, not the highest instrument index.
 function Kontakt.get_num_instruments() end
 
 ---@param multi_script_idx integer The zero-based index of the multi script slot.
@@ -111,54 +148,100 @@ function Kontakt.is_multi_script_protected(multi_script_idx) end
 
 -- Set Property
 
----@param name string -- Sets the name of the multi.
+---Sets the multi name shown by Kontakt.
+---@param name string New multi name.
 function Kontakt.set_multi_name(name) end
 
----@param script_idx integer -- Zero-based index of the multi script slot.
----@param bypass boolean -- True to bypass the script, false to un-bypass.
+---Changes the bypass state of a multi script slot.
+---@param script_idx integer Zero-based multi script slot index (`0` to `Kontakt.max_num_multi_scripts - 1`).
+---@param bypass boolean `true` to bypass the script; `false` to enable it.
 function Kontakt.set_multi_script_bypassed(script_idx, bypass) end
 
----@param script_idx integer -- Zero-based index of the multi script slot.
----@param name string -- The new display name of the script.
+---Sets the title shown in the multi script slot header.
+---@param script_idx integer Zero-based multi script slot index (`0` to `Kontakt.max_num_multi_scripts - 1`).
+---@param name string New display name.
 function Kontakt.set_multi_script_name(script_idx, name) end
 
----@param script_idx integer -- Zero-based index of the multi script slot.
----@param source string -- Absolute file path or script source text for this slot.
+---Loads a multi script into a slot from a Lua file.
+---@param script_idx integer Zero-based multi script slot index (`0` to `Kontakt.max_num_multi_scripts - 1`).
+---@param source string Absolute path to the Lua source file; this is not inline source text.
 function Kontakt.set_multi_script_source(script_idx, source) end
 
 -- Modifiers
 
----Resets the entire multi to its default (empty) state.
+---Resets the entire multi to its default empty state, removing all loaded instruments and multi scripts.
 function Kontakt.reset_multi() end
 
 -- File I/O
 
----@param filename string -- Absolute path where the multi file will be saved.
----@param options table -- Save options (e.g., mode, absolute_paths, compress_samples, samples_sub_dir).
+---Saves the current multi using the requested patch/sample handling options.
+---@param filename string Absolute destination path for the multi file.
+---@param options SaveOptions Save options; omitted fields use their documented defaults.
 function Kontakt.save_multi(filename, options) end
 
----@param filename string -- Absolute path of the multi file to load.
+---Loads a multi from disk. Kontakt resets the entire instrument rack before loading it.
+---@param filename string Absolute path of the multi file to load.
 function Kontakt.load_multi(filename) end
 
 -------------------------------------------------------------------------------
 -- Instrument
 -------------------------------------------------------------------------------
 
+---@class InstrumentOptions
+---@field key_switch integer|nil Key switch note, or nil when disabled (default: nil).
+---@field key_range_from integer|nil Lowest playable MIDI note (default: 0).
+---@field key_range_to integer|nil Highest playable MIDI note (default: 127).
+---@field velocity_range_from integer|nil Lowest accepted MIDI velocity (default: 0).
+---@field velocity_range_to integer|nil Highest accepted MIDI velocity (default: 127).
+---@field midi_transpose integer|nil MIDI input transposition in semitones (default: 0).
+---@field wallpaper string|nil Instrument wallpaper path (default: nil).
+---@field komplete_ui_module_name string|nil KUI module name without `.kscript`; use dots for nested folders (default: `""`).
+---@field komplete_ui_width integer|nil KUI width from 633 to 1000 pixels (default: 633).
+---@field komplete_ui_height integer|nil KUI height from 50 to 750 pixels (default: 50).
+---@field voice_stealing_mode voice_stealing_modes|nil Voice stealing strategy (default: `"oldest"`).
+---@field voice_stealing_fadeout integer|nil Voice-stealing fade-out time in milliseconds (default: 10).
+---@field time_machine_voice_limit integer|nil Time Machine voice limit (default: 8).
+---@field time_machine_voice_limit_hq integer|nil High-quality Time Machine voice limit (default: 4).
+---@field time_machine_use_legacy boolean|nil Use the legacy Time Machine implementation (default: false).
+---@field dfd_buffersize integer|nil DFD buffer size (default: 60).
+---@field background_loading boolean|nil Enable background sample loading (default: true).
+---@field cc_64_mode cc64_modes|nil Sustain-pedal handling mode (default: `"pedal_and_cc"`).
+---@field use_cc_120_123 boolean|nil Respond to All Sound Off/All Notes Off controllers (default: true).
+---@field use_cc_7_10 boolean|nil Respond to MIDI volume and pan controllers (default: true).
+---@field cc_7_range integer|nil MIDI volume controller range (default: 0).
+---@field show_factory_snapshots boolean|nil Include factory snapshots in the snapshot browser (default: true).
+---@field factory_snapshot_path string|nil Factory snapshot directory; the default depends on the instrument.
+---@field user_snapshot_path string|nil User snapshot directory; the default depends on the instrument.
+---@field info_icon integer|nil Instrument info icon index (default: 28).
+---@field info string|nil Instrument information text (default: `"(null)"`).
+---@field info_author string|nil Instrument author shown in the info pane (default: `"Kontakt"`).
+---@field info_url string|nil Instrument URL shown in the info pane (default: `"(null)"`).
+
+---@class VoiceGroupOptions
+---@field mode voice_group_modes|nil Voice selection mode (default: `"oldest"`).
+---@field name string|nil Voice group name (default: `""`).
+---@field voices integer|nil Maximum simultaneous voices for this voice group (default: 1).
+---@field fade_time integer|nil Voice fade time in milliseconds (default: 10).
+---@field prefer_released boolean|nil Prefer voices whose notes have already been released (default: true).
+---@field exclusive_group integer|nil Exclusive group assignment (default: nil).
+
 -- Get Property
 
----@return integer? -- Next available instrument index (or nil if none).
+---Returns the next unoccupied instrument index, or nil when no slot is available.
+---@return integer? instrument_idx
 function Kontakt.get_free_instrument_index() end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param aux_index integer -- Aux send index.
----@return number -- Returns aux send level in dB.
+---@param instrument_idx integer Instrument index, preferably obtained from `get_instrument_indices()`.
+---@param aux_index integer Zero-based AUX send index.
+---@return number level_db AUX send level in dB.
 function Kontakt.get_instrument_aux_level(instrument_idx, aux_index) end
 
----@return integer[] -- Returns a table of all instrument indices currently loaded.
+---Returns every loaded instrument index. Use these values for APIs accepting `instrument_idx`; indices are not necessarily consecutive when banks are present.
+---@return integer[] instrument_indices
 function Kontakt.get_instrument_indices() end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@return integer -- Returns the MIDI channel of the instrument (0 = Omni, 1–64 channels A–D).
+---@param instrument_idx integer Instrument index.
+---@return integer channel MIDI input channel: `0` is Omni; `1` to `64` address channels 1–16 on ports A–D.
 function Kontakt.get_instrument_midi_channel(instrument_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -169,25 +252,26 @@ function Kontakt.get_instrument_mute(instrument_idx) end
 ---@return string -- Returns the name of the instrument.
 function Kontakt.get_instrument_name(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@return table -- Returns an options table for the instrument.
+---Returns all configurable instrument options, including MIDI ranges, voice handling, DFD, snapshots, metadata, and KUI settings.
+---@param instrument_idx integer Instrument index.
+---@return InstrumentOptions options
 function Kontakt.get_instrument_options(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@return integer -- Returns the audio output channel of the instrument.
+---@param instrument_idx integer Instrument index.
+---@return integer channel Zero-based audio output channel index.
 function Kontakt.get_instrument_output_channel(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@return number -- Returns the panning of the instrument.
+---@param instrument_idx integer Instrument index.
+---@return number percent Output panorama from `-100.0` (left) to `100.0` (right).
 function Kontakt.get_instrument_pan(instrument_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@return integer -- Returns the instrument’s polyphony (voice limit).
 function Kontakt.get_instrument_polyphony(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param script_idx integer -- Script slot index.
----@return string -- Returns filename of linked script for this slot (if any).
+---@param instrument_idx integer Instrument index.
+---@param script_idx integer Zero-based script slot index.
+---@return string filename Filename of the script linked from the instrument's resource container; empty when none is linked.
 function Kontakt.get_instrument_script_linked_filename(instrument_idx, script_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -212,8 +296,9 @@ function Kontakt.get_instrument_tune(instrument_idx) end
 ---@return number -- Returns the instrument’s overall volume in dB.
 function Kontakt.get_instrument_volume(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@return table -- Returns voice groups for the instrument (up to 128 entries).
+---Returns up to 128 voice-group definitions. Each array position corresponds to that voice group index.
+---@param instrument_idx integer Instrument index.
+---@return VoiceGroupOptions[] voice_groups
 function Kontakt.get_voice_groups(instrument_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -233,17 +318,19 @@ function Kontakt.is_instrument_script_protected(instrument_idx, script_idx) end
 
 -- Set Property
 
---- Resets entire instrument to default.
----@param instrument_idx integer -- Zero-based index of the instrument.
-function Kontakt.reset_instrument(instrument_idx) end 
+---Resets the specified instrument to its default state.
+---@param instrument_idx integer Instrument index.
+function Kontakt.reset_instrument(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param aux_index integer -- Aux index.
----@param level number -- Sets aux send level in dB. Range is -math.huge … 12.0.
+---Sets an instrument AUX send level.
+---@param instrument_idx integer Instrument index.
+---@param aux_index integer Zero-based AUX send index (`0` to `Kontakt.max_num_instrument_aux - 1`).
+---@param level number Level in dB, from `-math.huge` (off) to `12.0`.
 function Kontakt.set_instrument_aux_level(instrument_idx, aux_index, level) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param channel integer -- Sets MIDI channel (0 = Omni, 1–64).
+---Sets the instrument's MIDI input channel.
+---@param instrument_idx integer Instrument index.
+---@param channel integer `0` for Omni, or `1` to `64` for channels 1–16 on ports A–D.
 function Kontakt.set_instrument_midi_channel(instrument_idx, channel) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -254,20 +341,22 @@ function Kontakt.set_instrument_mute(instrument_idx, mute) end
 ---@param name string -- Sets instrument name.
 function Kontakt.set_instrument_name(instrument_idx, name) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param options table -- Sets selected instrument options.
+---Updates instrument options. Fields omitted from `options` use the API defaults documented by `InstrumentOptions`.
+---@param instrument_idx integer Instrument index.
+---@param options InstrumentOptions Options to apply.
 function Kontakt.set_instrument_options(instrument_idx, options) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param channel integer -- Sets audio output for this instrument.
+---Routes the instrument to an audio output. Check the configured output count before assigning an index.
+---@param instrument_idx integer Instrument index.
+---@param channel integer Zero-based audio output channel index.
 function Kontakt.set_instrument_output_channel(instrument_idx, channel) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param pan number -- Sets panning (-100 … 100).
+---@param instrument_idx integer Instrument index.
+---@param pan number Output panorama from `-100.0` (left) to `100.0` (right).
 function Kontakt.set_instrument_pan(instrument_idx, pan) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param voices number -- Sets maximum polyphony (≥1).
+---@param instrument_idx integer Instrument index.
+---@param voices integer Maximum polyphony; minimum value is `1`.
 function Kontakt.set_instrument_polyphony(instrument_idx, voices) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -275,100 +364,104 @@ function Kontakt.set_instrument_polyphony(instrument_idx, voices) end
 ---@param bypass boolean -- Bypasses/un-bypasses script slot.
 function Kontakt.set_instrument_script_bypassed(instrument_idx, script_idx, bypass) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param script_idx integer
----@param filename string -- Sets linked filename in resource container.
+---Links a script packed inside the instrument's resource container to a script slot.
+---@param instrument_idx integer Instrument index.
+---@param script_idx integer Zero-based script slot index.
+---@param filename string Filename of the packed script inside the resource container.
 function Kontakt.set_instrument_script_linked_filename(instrument_idx, script_idx, filename) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param script_idx integer
----@param name string -- Sets script title (no extension).
+---Sets the title shown in the script slot header or performance-view tab.
+---@param instrument_idx integer Instrument index.
+---@param script_idx integer Zero-based script slot index.
+---@param name string Script title without a file extension.
 function Kontakt.set_instrument_script_name(instrument_idx, script_idx, name) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param script_idx integer
----@param source string -- Sets script source from absolute path.
+---Loads a script into an instrument script slot from a Lua file.
+---@param instrument_idx integer Instrument index.
+---@param script_idx integer Zero-based script slot index.
+---@param source string Absolute path to the Lua source file; this is not inline source text.
 function Kontakt.set_instrument_script_source(instrument_idx, script_idx, source) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param solo boolean -- Sets solo state.
 function Kontakt.set_instrument_solo(instrument_idx, solo) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param tune number -- Sets tuning in semitones.
+---@param instrument_idx integer Instrument index.
+---@param tune number Output tuning in semitones, from `-36.0` to `36.0`.
 function Kontakt.set_instrument_tune(instrument_idx, tune) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param volume number -- Sets volume in dB.
+---@param instrument_idx integer Instrument index.
+---@param volume number Output level in dB, from `-math.huge` (silent) to `12.0`.
 function Kontakt.set_instrument_volume(instrument_idx, volume) end
 
-
----@class VoiceGroupOptions
----@field mode voice_group_modes|nil        @ Voice stealing mode (default: “oldest”).
----@field name string|nil                  @ Voice group name (default: ’’).
----@field voices integer|nil               @ Maximum voices for this voice group (default: 1).
----@field fade_time integer|nil            @ Voice fade time in milliseconds (default: 10).
----@field prefer_released boolean|nil      @ Prefer released voices (default: true).
----@field exclusive_group integer|nil      @ Exclusive group (default: nil).
-
---- Sets voice groups of the specified instrument as a table with a maximum of 128 entries, matching the total number of possible voice groups. Nil table entries will set voice group to default values.
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param voice_groups VoiceGroupOptions -- Table of voice groups to set for the instrument.
+---Replaces the instrument's voice-group definitions (maximum 128 entries). A nil array entry resets that voice group to its defaults.
+---@param instrument_idx integer Instrument index.
+---@param voice_groups VoiceGroupOptions[] Voice groups indexed by voice group number.
 function Kontakt.set_voice_groups(instrument_idx, voice_groups) end
 
 -- Modifiers
 
---- Adds new instrument at given or next available instrument index. Returns the index of the new instrument. Pass this index to functions taking `instrument_idx` as an argument.
----@param instrument_idx? integer -- Zero-based index of the instrument.
----@return integer -- Returns the instrument slot of the new instrument.
-function Kontakt.add_instrument(instrument_idx) end 
+---Inserts an empty instrument at the requested index, or at the next free index when omitted.
+---@param instrument_idx? integer Instrument index to use.
+---@return integer instrument_idx Index of the newly created instrument; pass it to other instrument APIs.
+function Kontakt.add_instrument(instrument_idx) end
 
---- Adds instrument bank at given or next available instrument slot. Returns the instrument slot of the new instrument bank.
----@param bank_index? integer -- Bank index where instrument will be added.
----@return integer -- Returns the instrument slot of the new instrument bank.
-function Kontakt.add_instrument_bank(bank_index) end 
+---Inserts an empty instrument bank at the requested rack slot, or at the next free slot when omitted.
+---@param instrument_slot? integer Zero-based rack slot (`0` to `Kontakt.max_num_instruments - 1`), not an instrument index inside a bank.
+---@return integer instrument_slot Rack slot containing the new bank.
+function Kontakt.add_instrument_bank(instrument_slot) end
 
 --- Removes the instrument at the specified instrument index from the multi.
 ---@param instrument_idx integer -- Zero-based index of instrument to remove.
 function Kontakt.remove_instrument(instrument_idx) end 
 
---- Removes the instrument bank at the specified instrument slot from the multi.
----@param bank_index integer -- Zero-based index of instrument bank to remove.
-function Kontakt.remove_instrument_bank(bank_index) end 
+---Removes the instrument bank at the specified rack slot from the multi.
+---@param instrument_slot integer Zero-based rack slot, not an instrument index inside the bank.
+function Kontakt.remove_instrument_bank(instrument_slot) end
 
 -- File I/O (Instrument)
 
---- Loads an instrument to the specified slot index. If that slot is already occupied, next available slot is used. Returns the slot index of the new instrument. Note: contrary to most other functions, the slot index here can also refer to a slot within an instrument bank!
----@param path string -- Absolute path to instrument file.
----@param instrument_idx? integer -- Zero-based index of the instrument slot.
----@return integer -- Returns the instrument slot index of the loaded instrument.
-function Kontakt.load_instrument(path, instrument_idx) end 
+---Loads an instrument at the requested index. If that position is occupied, Kontakt uses the next free one. Unlike most slot-oriented APIs, the index may address a position inside an instrument bank.
+---@param filename string Absolute path to the instrument file.
+---@param instrument_idx? integer Requested instrument index; omit it to use the next free index.
+---@return integer instrument_idx Actual index of the loaded instrument.
+function Kontakt.load_instrument(filename, instrument_idx) end
 
---- Loads the specified snapshot in the specified instrument index.
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param snapshot_name string -- Instrument snapshot name to load (persisted UI state).
-function Kontakt.load_snapshot(instrument_idx, snapshot_name) end 
+---Loads a snapshot file into the specified instrument.
+---@param instrument_idx integer Instrument index.
+---@param filename string Absolute path to the snapshot file.
+function Kontakt.load_snapshot(instrument_idx, filename) end
 
----@class SaveInstrumentOptions
----@field mode save_modes|nil           @ default: "patch"
----@field absolute_paths boolean|nil     @ default: false
----@field compress_samples boolean|nil   @ default: false
----@field samples_sub_dir string|nil
+---Saves an instrument using the requested patch/sample handling options.
+---@param instrument_idx integer Instrument index.
+---@param filename string Absolute destination path for the instrument file.
+---@param options SaveOptions Save options; omitted fields use their documented defaults.
+function Kontakt.save_instrument(instrument_idx, filename, options) end
 
---- Saves instrument.
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param filename string -- Absolute path to save instrument file.
----@param options SaveInstrumentOptions|nil -- table with one or more of the following entries: `mode: save_modes (default: “patch”), absolute_paths: boolean (default: false), compress_samples: boolean (default: false), samples_sub_dir: string`, Individual entries of this table can be omitted. In that case the default value is used.
-function Kontakt.save_instrument(instrument_idx, filename, options) end 
-
---- Saves the state of the instrument at the specified insturment index as a snapshot at the specified absolute path.
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param filename string -- Absolute path to save instrument snapshot.
-function Kontakt.save_snapshot(instrument_idx, filename) end 
+---Saves the current state of an instrument as a snapshot file.
+---@param instrument_idx integer Instrument index.
+---@param filename string Absolute destination path for the snapshot.
+function Kontakt.save_snapshot(instrument_idx, filename) end
 
 -------------------------------------------------------------------------------
 -- Group
 -------------------------------------------------------------------------------
+
+---@class GroupStartOption
+---@field mode group_start_conditions Condition type.
+---@field next group_start_operators|nil Operator joining this condition to the next one (default: `"and"`).
+---@field key_min integer|nil Lowest note for `"key"` (default: 24).
+---@field key_max integer|nil Highest note for `"key"` (default: 24).
+---@field controller integer|nil MIDI controller number for `"controller"` (default: 1).
+---@field cc_min integer|nil Lowest controller value for `"controller"` (default: 0).
+---@field cc_max integer|nil Highest controller value for `"controller"` (default: 64).
+---@field position integer|nil Cycle position for `"round_robin"` (default: 1).
+---@field zone integer|nil Zone index for `"slice_trigger"` (default: nil).
+---@field slice integer|nil Slice index for `"slice_trigger"` (default: nil).
+---@field internal boolean|nil Whether a `"slice_trigger"` is internal (default: false).
+
+---@class GroupLoadOptions
+---@field replace_zones boolean|nil Replace the destination group's existing zones (default: false).
 
 -- Get Property
 
@@ -377,19 +470,20 @@ function Kontakt.save_snapshot(instrument_idx, filename) end
 ---@return string -- Returns the name of the specified group.
 function Kontakt.get_group_name(instrument_idx, group_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@return number -- Returns the amplifier panorama of the specified group.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@return number percent Amplifier panorama from `-100.0` (left) to `100.0` (right).
 function Kontakt.get_group_pan(instrument_idx, group_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@return string -- Returns the playback mode of the group’s source module; one of group_playback_modes.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@return group_playback_modes mode Playback mode of the group's Source module.
 function Kontakt.get_group_playback_mode(instrument_idx, group_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@return table -- Returns a table of start options for this group.
+---Returns up to `Kontakt.max_num_group_start_criteria` conditions in evaluation order.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@return GroupStartOption[] options
 function Kontakt.get_group_start_options(instrument_idx, group_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -406,9 +500,9 @@ function Kontakt.get_group_volume(instrument_idx, group_idx) end
 ---@return number -- Returns the total number of groups in the instrument.
 function Kontakt.get_num_groups(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@return number -- Returns the assigned voice group index or nil if not assigned.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@return integer? voice_group Assigned voice group index, or nil when the group has no assignment.
 function Kontakt.get_voice_group(instrument_idx, group_idx) end
 
 -- Set Property
@@ -418,19 +512,21 @@ function Kontakt.get_voice_group(instrument_idx, group_idx) end
 ---@param name string -- Sets the group’s display name.
 function Kontakt.set_group_name(instrument_idx, group_idx, name) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@param pan number -- Sets amplifier panorama of the group (-100.0 .. 100.0).
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@param pan number Amplifier panorama from `-100.0` (left) to `100.0` (right).
 function Kontakt.set_group_pan(instrument_idx, group_idx, pan) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@param mode string -- Playback mode from group_playback_modes.
+---Sets the playback mode of the group's Source module.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@param mode group_playback_modes Playback mode.
 function Kontakt.set_group_playback_mode(instrument_idx, group_idx, mode) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@param options table -- A table of start options for the group; defaults may be omitted.
+---Replaces the group's ordered start conditions. At most `Kontakt.max_num_group_start_criteria` entries are accepted; fields omitted from an entry use the defaults documented by `GroupStartOption`.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@param options GroupStartOption[] Ordered start conditions.
 function Kontakt.set_group_start_options(instrument_idx, group_idx, options) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -440,43 +536,58 @@ function Kontakt.set_group_tune(instrument_idx, group_idx, tune) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param group_idx integer -- Zero-based index of the group.
----@param volume number -- Group amplifier volume in dB.
+---@param volume number Group amplifier level in dB, from `-math.huge` (silent) to `12.0`.
 function Kontakt.set_group_volume(instrument_idx, group_idx, volume) end
 
 --- Assign a voice group to a group. In order to reset the assignment pass nil.
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param group_idx integer -- Zero-based index of the group.
----@param voice_group integer|nil -- Assigns a voice group to the group; nil resets assignment.
+---@param voice_group integer|nil Voice group index; pass nil to clear the assignment.
 function Kontakt.set_voice_group(instrument_idx, group_idx, voice_group) end
 
 -- Modifiers
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@return integer new_group_idx -- Adds a new group and returns its index.
+---Adds an empty group to an instrument.
+---@param instrument_idx integer Instrument index.
+---@return integer new_group_idx Index of the new group; pass it to APIs accepting `group_idx`.
 function Kontakt.add_group(instrument_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group to remove.
----@return boolean success -- Removes the specified group.
+---Removes a group from an instrument.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based index of the group to remove.
+---@return boolean success Whether the group was removed.
 function Kontakt.remove_group(instrument_idx, group_idx) end
 
 -- File I/O
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@param filename string -- Absolute path where the group will be saved.
----@param options? table -- Save options such as `mode`, `absolute_paths`, `compress_samples`, etc.
+---Saves a group using the requested patch/sample handling options.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based group index.
+---@param filename string Absolute destination path for the group file.
+---@param options? SaveOptions Save options; omitted fields use their documented defaults.
 function Kontakt.save_group(instrument_idx, group_idx, filename, options) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Zero-based index of the group.
----@param filename string -- Absolute path to load the group from.
----@param options? table -- Options such as `replace_zones`.
+---Loads a group file into an existing group.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based destination group index.
+---@param filename string Absolute path of the group file.
+---@param options? GroupLoadOptions Load behavior; omitted fields use their documented defaults.
 function Kontakt.load_group(instrument_idx, group_idx, filename, options) end
 
 -------------------------------------------------------------------------------
 -- Zone
 -------------------------------------------------------------------------------
+
+---@class ZoneGeometry
+---@field root_key integer Root MIDI note (default: 36; range: 0–127).
+---@field low_key integer Lowest mapped MIDI note (default: 0; range: 0–`high_key`).
+---@field high_key integer Highest mapped MIDI note (default: 127; range: `low_key`–127).
+---@field low_key_fade integer Low-key crossfade span (default: 0).
+---@field high_key_fade integer High-key crossfade span (default: 0).
+---@field low_velocity integer Lowest mapped velocity (default: 1; range: 1–`high_velocity`).
+---@field high_velocity integer Highest mapped velocity (default: 127; range: `low_velocity`–127).
+---@field low_velocity_fade integer Low-velocity crossfade span (default: 0).
+---@field high_velocity_fade integer High-velocity crossfade span (default: 0).
 
 -- Get Property
 
@@ -492,20 +603,20 @@ function Kontakt.get_sample_loop_count(instrument_idx, zone_idx, loop_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
----@param loop_idx integer -- Loop index.
----@return integer -- Returns the loop length of the specified zone’s loop in sample frames.
+---@param loop_idx integer Zero-based loop index (`0` to `Kontakt.max_num_sample_loops - 1`).
+---@return integer frames Loop length in sample frames.
 function Kontakt.get_sample_loop_length(instrument_idx, zone_idx, loop_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
----@param loop_idx integer -- Loop index.
----@return string -- Returns the loop mode of the specified zone’s loop. (See sample_loop_modes.)
+---@param loop_idx integer Zero-based loop index (`0` to `Kontakt.max_num_sample_loops - 1`).
+---@return sample_loop_modes mode Loop playback mode.
 function Kontakt.get_sample_loop_mode(instrument_idx, zone_idx, loop_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
----@param loop_idx integer -- Loop index.
----@return integer -- Returns the loop start of the specified zone’s loop.
+---@param loop_idx integer Zero-based loop index (`0` to `Kontakt.max_num_sample_loops - 1`).
+---@return integer frame Loop start in sample frames.
 function Kontakt.get_sample_loop_start(instrument_idx, zone_idx, loop_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -516,13 +627,14 @@ function Kontakt.get_sample_loop_tune(instrument_idx, zone_idx, loop_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
----@param loop_idx integer -- Loop index.
----@return integer -- Returns the loop crossfade time of the specified zone’s loop.
+---@param loop_idx integer Zero-based loop index (`0` to `Kontakt.max_num_sample_loops - 1`).
+---@return integer frames Loop crossfade length in sample frames.
 function Kontakt.get_sample_loop_xfade(instrument_idx, zone_idx, loop_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param zone_idx integer -- Zone index.
----@return table -- Returns a table containing the complete zone geometry (key/velocity ranges, root key, fades, etc.).
+---Returns the zone's key and velocity ranges, root key, and crossfade spans.
+---@param instrument_idx integer Instrument index.
+---@param zone_idx integer Zero-based zone index.
+---@return ZoneGeometry geometry
 function Kontakt.get_zone_geometry(instrument_idx, zone_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -532,7 +644,7 @@ function Kontakt.get_zone_grid_bpm(instrument_idx, zone_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
----@return string -- Returns the grid mode of the specified zone. (See zone_grid_modes.)
+---@return zone_grid_modes mode Grid mode of the specified zone.
 function Kontakt.get_zone_grid_mode(instrument_idx, zone_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -600,9 +712,10 @@ function Kontakt.get_zone_sample(instrument_idx, zone_idx) end
 ---@return integer? -- Returns the number of audio channels in the sample loaded in the specified zone.
 function Kontakt.get_zone_sample_channels(instrument_idx, zone_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param zone_idx integer -- Zone index.
----@return integer -- Returns the sample end position as negative frames relative to last sample frame.
+---Returns the sample-end offset as a non-positive frame count relative to the last sample frame. To obtain the absolute Wave Editor position, add this value to `get_zone_sample_frames()`.
+---@param instrument_idx integer Instrument index.
+---@param zone_idx integer Zero-based zone index.
+---@return integer frame_offset
 function Kontakt.get_zone_sample_end(instrument_idx, zone_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -649,7 +762,7 @@ function Kontakt.set_sample_loop_length(instrument_idx, zone_idx, loop_idx, fram
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
 ---@param loop_idx integer -- Loop index.
----@param mode string -- Sets the playback mode for the specified zone’s loop. (See sample_loop_modes.)
+---@param mode sample_loop_modes Loop playback mode.
 function Kontakt.set_sample_loop_mode(instrument_idx, zone_idx, loop_idx, mode) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -670,31 +783,23 @@ function Kontakt.set_sample_loop_tune(instrument_idx, zone_idx, loop_idx, tune) 
 ---@param frames integer -- Sets the length of the specified zone’s loop xfade in sample frames.
 function Kontakt.set_sample_loop_xfade(instrument_idx, zone_idx, loop_idx, frames) end
 
----@class ZoneGeometry
----@field root_key integer -- Default 36, range 0 … 127.
----@field low_key integer -- Default 0, range 0 … high_key.
----@field high_key integer -- Default 127, range low_key … 127.
----@field low_key_fade integer -- Default 0, range 0 … span.
----@field high_key_fade integer -- Default 0, range 0 … span.
----@field low_velocity integer -- Default 1, range 1 … high_velocity.
----@field high_velocity integer -- Default 127, range low_velocity … 127.
----@field low_velocity_fade integer -- Default 0, range 0 … span.
----@field high_velocity_fade integer -- Default 0, range 0 … span.
-
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param zone_idx integer -- Zone index.
----@param geometry ZoneGeometry -- Applies the provided zone geometry table (keys/velocities/fades/root key).
+---Applies a complete geometry table to a zone. Each fade must fit within its key/velocity range after subtracting the opposite fade.
+---@param instrument_idx integer Instrument index.
+---@param zone_idx integer Zero-based zone index.
+---@param geometry ZoneGeometry Key range, velocity range, root key, and crossfade spans.
 function Kontakt.set_zone_geometry(instrument_idx, zone_idx, geometry) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param zone_idx integer -- Zone index.
----@param mode string -- Grid mode. (See zone_grid_modes.)
----@param bpm number -- Grid BPM.
+---Configures the zone's sample grid.
+---@param instrument_idx integer Instrument index.
+---@param zone_idx integer Zero-based zone index.
+---@param mode zone_grid_modes Grid mode.
+---@param bpm number Grid tempo in beats per minute.
 function Kontakt.set_zone_grid(instrument_idx, zone_idx, mode, bpm) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param zone_idx integer -- Zone index.
----@param group_idx integer -- Sets the group index for the specified zone (moves zone to that group).
+---Moves a zone to another existing group without recreating the zone or copying its properties.
+---@param instrument_idx integer Instrument index.
+---@param zone_idx integer Zero-based zone index.
+---@param group_idx integer Zero-based destination group index.
 function Kontakt.set_zone_group(instrument_idx, zone_idx, group_idx) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -754,7 +859,7 @@ function Kontakt.set_zone_sample(instrument_idx, zone_idx, filename) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index.
----@param frame integer -- Sets sample end as negative frames relative to last sample frame.
+---@param frame integer Non-positive frame offset relative to the sample's last frame; use `absolute_end - get_zone_sample_frames()` to convert a Wave Editor position.
 function Kontakt.set_zone_sample_end(instrument_idx, zone_idx, frame) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
@@ -781,18 +886,20 @@ function Kontakt.set_zone_volume(instrument_idx, zone_idx, volume) end
 -- Modifiers
 --------------------------------------------------------------------------------
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param group_idx integer -- Group index for the new zone.
----@param filename string -- Absolute path to the sample file.
----@return integer -- Returns the new zone index.
+---Creates a zone, assigns it to a group, and loads a sample into it.
+---@param instrument_idx integer Instrument index.
+---@param group_idx integer Zero-based destination group index.
+---@param filename string Absolute path to the sample file.
+---@return integer zone_idx New zone index; pass it to APIs accepting `zone_idx`.
 function Kontakt.add_zone(instrument_idx, group_idx, filename) end
 
 ---@param instrument_idx integer -- Zero-based index of the instrument.
 ---@param zone_idx integer -- Zone index to remove.
 function Kontakt.remove_zone(instrument_idx, zone_idx) end
 
----@param instrument_idx integer -- Zero-based index of the instrument.
----@param zone_idx integer -- Zone index whose loops should be restored from sample metadata (if any).
+---Replaces the zone's loop points with those stored in the sample metadata, when such metadata exists.
+---@param instrument_idx integer Instrument index.
+---@param zone_idx integer Zero-based zone index.
 function Kontakt.restore_loops_from_sample(instrument_idx, zone_idx) end
 
 
@@ -801,40 +908,40 @@ function Kontakt.restore_loops_from_sample(instrument_idx, zone_idx) end
 -------------------------------------------------------------------------------
 
 ---Loads a source preset file (`.NKP`) to the specified group of an instrument.
----@param filename string -- Absolute path of the source preset file.
----@param instrument_idx integer -- Index of the target instrument.
----@param group_idx integer -- Index of the group within the instrument.
----@return integer result -- A result code indicating success (non-nil) or failure.
+---@param filename string Absolute path of the Source module preset.
+---@param instrument_idx integer Target instrument index.
+---@param group_idx integer Zero-based target group index.
+---@return integer result_code API result code.
 function Kontakt.load_source_preset(filename, instrument_idx, group_idx) end
 
----Loads an effect preset file (`.NKP`) to the specified location based on its FX chain target.
----@param filename string -- Absolute path of the FX preset file.
----@param instrument_or_output_idx integer -- Instrument index (for instrument FX) or output index (for output FX).
----@param group_idx integer -- Group index (only relevant when using `group_fx`). Otherwise, set to `-1`. 
----@param generic integer|Kontakt -- A constant specifying the FX chain target (e.g., `Kontakt.group_fx`). 
----@return integer result -- A result code indicating success (non-nil) or failure.
+---Loads an effect preset (`.NKP`) into an instrument or output FX chain.
+---@param filename string Absolute path of the effect preset.
+---@param instrument_or_output_idx integer Instrument index, or an Output-panel channel from `0` to `127` when `generic` is `Kontakt.output_fx`.
+---@param group_idx integer Group index when `generic` is `Kontakt.group_fx`; otherwise pass `-1`.
+---@param generic integer FX-chain target constant such as `Kontakt.insert_fx`; add `1` to `15` to `Kontakt.bus_fx` to address another instrument bus.
+---@return integer result_code API result code.
 function Kontakt.load_fx_preset(filename, instrument_or_output_idx, group_idx, generic) end
 
 ---Loads a multi script preset file (`.NKP`) into the specified multi script slot of an instrument.
----@param filename string -- Absolute path of the multi script preset file.
----@param instrument_idx integer -- Instrument index on which to apply the preset.
----@param multi_script_idx integer -- Zero-based index of the multi script slot.
----@return integer result -- A result code indicating success (non-nil) or failure.
+---@param filename string Absolute path of the multi script preset.
+---@param instrument_idx integer Target instrument index.
+---@param multi_script_idx integer Zero-based multi script slot index.
+---@return integer result_code API result code.
 function Kontakt.load_multi_script_preset(filename, instrument_idx, multi_script_idx) end
 
 ---Loads a script preset file (`.NKP`) into the specified script slot of an instrument.
----@param filename string -- Absolute path of the script preset file.
----@param instrument_idx integer -- Instrument index on which to apply the preset.
----@param script_idx integer -- Script slot index in the instrument.
----@return integer result -- A result code indicating success (non-nil) or failure.
+---@param filename string Absolute path of the script preset.
+---@param instrument_idx integer Target instrument index.
+---@param script_idx integer Zero-based instrument script slot index.
+---@return integer result_code API result code.
 function Kontakt.load_script_preset(filename, instrument_idx, script_idx) end
 
----Loads a complete FX chain preset (`.NKP`) to a specific location based on FX chain target.
----@param filename string -- Absolute path of the FX chain preset file.
----@param instrument_idx integer -- Target instrument index.
----@param group_idx integer -- Group index (only relevant when `generic` is `Kontakt.group_fx`). Otherwise, set to `-1`. 
----@param generic integer|Kontakt -- Constant specifying which FX chain to load into (e.g., `Kontakt.insert_fx`). 
----@return integer result -- A result code indicating success (non-nil) or failure.
+---Loads a complete FX-chain preset (`.NKP`) into an instrument chain. `Kontakt.output_fx` is not supported by this function.
+---@param filename string Absolute path of the FX-chain preset.
+---@param instrument_idx integer Target instrument index.
+---@param group_idx integer Group index when `generic` is `Kontakt.group_fx`; otherwise pass `-1`.
+---@param generic integer FX-chain target constant such as `Kontakt.insert_fx`; add `1` to `15` to `Kontakt.bus_fx` to address another instrument bus.
+---@return integer result_code API result code.
 function Kontakt.load_fx_chain_preset(filename, instrument_idx, group_idx, generic) end
 
 
@@ -842,41 +949,49 @@ function Kontakt.load_fx_chain_preset(filename, instrument_idx, group_idx, gener
 -- Utility
 -------------------------------------------------------------------------------
 
+---@class KontaktFileInfo
+---@field file string Instrument filename reported by Kontakt.
+---@field format string Kontakt file format.
+---@field version string Kontakt version stored in the file.
+---@field library string|nil Associated library information, when present.
+---@field num_instruments integer Number of instruments contained in the file.
+---@field num_groups integer Number of groups contained in the file.
+---@field num_zones integer Number of zones contained in the file.
+
 -- Functions
 
---- Unit test helper: calls `test` expecting it to fail; throws an error if it doesn’t.
----@param test function 
+---Calls `test` and expects it to fail. Raises an error itself if `test` completes successfully; intended for Lua API unit tests.
+---@param test function Function containing the operation expected to fail.
 function Kontakt.assert_fail(test) end
 
---- Creates a new resource container (with the obligatory Resources folder) or updates an existing resource container. If the .nkr extension is not a part of the filename string, it will be added automatically.
----@param instrument_idx integer -- Index of the instrument for which to create or update a resource container.
----@param filename string -- Absolute filename of the resource container to create or update (will add .nkr if missing).
+---Creates a resource container for an instrument, or updates an existing one, from the obligatory sibling `Resources` folder. Kontakt appends `.nkr` when the extension is omitted.
+---@param instrument_idx integer Instrument index.
+---@param filename string Absolute destination path of the resource container.
 function Kontakt.create_resource_container(instrument_idx, filename) end
 
---- Links an existing resource container to the instrument. If the .nkr extension is not a part of the filename string, it will be added automatically. Note that this command does not require the Resources folder to exist.
----@param instrument_idx integer -- Index of the instrument for which to link an existing resource container.
----@param filename string -- Filename of the resource container to link (will add .nkr if missing).
+---Links an existing resource container to an instrument without requiring a `Resources` folder. Kontakt appends `.nkr` when the extension is omitted.
+---@param instrument_idx integer Instrument index.
+---@param filename string Path of the existing resource container.
 function Kontakt.link_resource_container(instrument_idx, filename) end
 
---- Extracts information from an instrument on disk.
----@param filename string -- Filename of an instrument on disk for which to extract file info.
----@return table fileinfo -- Table with fields: `file`, `format`, `version`, `library`, `num_instruments`, `num_groups`, `num_zones`.
+---Reads format, version, library, instrument, group, and zone metadata without loading the instrument into the rack.
+---@param filename string Path of the Kontakt instrument file to inspect.
+---@return KontaktFileInfo file_info
 function Kontakt.get_file_info(filename) end
 
---- Runs one of available purge actions for the specified instrument.
----@param instrument_idx integer -- Index of the instrument on which to run one of the preset purge actions.
----@param mode string -- Purge mode (e.g., `"all_samples"`, `"reload_all_samples"`, etc.).
+---Runs a sample-pool purge action for an instrument.
+---@param instrument_idx integer Instrument index.
+---@param mode instrument_purge_modes Purge action.
 function Kontakt.instrument_purge(instrument_idx, mode) end
 
 -- File I/O
 
---- Decodes an NCW sample back to uncompressed WAV format.
----@param source string -- Path to the NCW file to decode.
----@param target string -- Path where the decoded WAV file will be written.
+---Decodes a losslessly compressed NCW sample to an uncompressed WAV file.
+---@param source string Path of the source NCW file.
+---@param target string Destination path for the WAV file.
 function Kontakt.ncw_decode(source, target) end
 
---- Encodes a WAV or AIFF sample to losslessly compressed NCW format.
----@param source string -- Path to a WAV or AIFF file to encode to NCW (lossless).
----@param target string -- Path where the encoded NCW file will be written.
+---Encodes a WAV or AIFF sample using Kontakt's lossless NCW compression.
+---@param source string Path of the source WAV or AIFF file.
+---@param target string Destination path for the NCW file.
 function Kontakt.ncw_encode(source, target) end
-
